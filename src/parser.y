@@ -23,69 +23,252 @@ extern void yyerror(const char *s);
 %token <tokenData> IF WHILE FOR STATIC INT BOOL CHAR ELSE RETURN BREAK
 %token <tokenData> EQ ADDASS SUBASS DIVASS MULASS LEQ GEQ NEQ DEC INC
 %token <tokenData> ADD SUB LT GT MUL DIV MOD RAND ASS AND OR NOT 
-%token <tokenData> BEG END THEN LPAR RPAR LBRK RBRK SC CM CN
-%token <tokenData> ASGN TO BY
-
+%token <tokenData> BEG END THEN ASGN TO BY DO
 %%
 
-// Simple grammer to act as a driver
+//-------------------- Grammar Structure --------------------
+program     
+          : decList                       { printf("Correct Syntax\n"); }
+          ;
 
-tokenlist  
-            : tokenlist token               {}
-            | token                         {}
-            ;
+decList   
+          : decList declaration
+          | declaration
+          ;
 
-token
-            : ID                            { printf("Line %d Token: ID Value: %s\n", $1->line, $1->tokenString); }
-            | CHARCONST                     { printf("Line %d Token: CHARCONST Value: \'%c\'  Input: %s\n", $1->line, $1->cValue, $1->tokenString); }
-            | STRINGCONST                   { printf("Line %d Token: STRINGCONST Value: \"%s\"  Len: %lu  Input: %s\n", $1->line, $1->sValue.c_str(), ($1->sValue).size(), $1->tokenString); }
-            | BOOLCONST                     { printf("Line %d Token: BOOLCONST Value: %d  Input: %s\n", $1->line, $1->nValue, $1->tokenString); }
-            | NUMCONST                      { printf("Line %d Token: NUMCONST Value: %d  Input: %s\n", $1->line, $1->nValue, $1->tokenString);}
-            | IF                            { printf("Line %d Token: %s\n", $1->line, "IF"); }
-            | WHILE                         { printf("Line %d Token: %s\n", $1->line, "WHILE"); }
-            | FOR                           { printf("Line %d Token: %s\n", $1->line, "FOR"); }
-            | STATIC                        { printf("Line %d Token: %s\n", $1->line, "STATIC"); }
-            | INT                           { printf("Line %d Token: %s\n", $1->line, "INT"); }
-            | BOOL                          { printf("Line %d Token: %s\n", $1->line, "BOOL"); }
-            | CHAR                          { printf("Line %d Token: %s\n", $1->line, "CHAR"); }
-            | ELSE                          { printf("Line %d Token: %s\n", $1->line, "ELSE"); }
-            | RETURN                        { printf("Line %d Token: %s\n", $1->line, "RETURN"); }
-            | BREAK                         { printf("Line %d Token: %s\n", $1->line, "BREAK"); }
-            | BEG                           { printf("Line %d Token: %s\n", $1->line, "BEGIN"); }
-            | END                           { printf("Line %d Token: %s\n", $1->line, "END"); }
-            | THEN                          { printf("Line %d Token: %s\n", $1->line, "THEN"); }
-            | AND                           { printf("Line %d Token: %s\n", $1->line, "AND"); }
-            | NOT                           { printf("Line %d Token: %s\n", $1->line, "NOT"); }
-            | TO                            { printf("Line %d Token: %s\n", $1->line, "TO"); }
-            | BY                            { printf("Line %d Token: %s\n", $1->line, "BY"); }
-            | ASGN                          { printf("Line %d Token: %s\n", $1->line, "ASGN"); }
-            | ADDASS                        { printf("Line %d Token: %s\n", $1->line, "ADDASGN"); }
-            | SUBASS                        { printf("Line %d Token: %s\n", $1->line, "SUBSGN"); }
-            | DIVASS                        { printf("Line %d Token: %s\n", $1->line, "DIVSGN"); }
-            | MULASS                        { printf("Line %d Token: %s\n", $1->line, "MULSGN"); }
-            | LEQ                           { printf("Line %d Token: %s\n", $1->line, "LEQ"); }
-            | GEQ                           { printf("Line %d Token: %s\n", $1->line, "GEQ"); }
-            | NEQ                           { printf("Line %d Token: %s\n", $1->line, "NEQ"); }
-            | DEC                           { printf("Line %d Token: %s\n", $1->line, "DEC"); }
-            | INC                           { printf("Line %d Token: %s\n", $1->line, "INC"); }
-            | ADD                           { printf("Line %d Token: %s\n", $1->line, "+"); }
-            | SUB                           { printf("Line %d Token: %s\n", $1->line, "-"); }
-            | LT                            { printf("Line %d Token: %s\n", $1->line, "<"); }
-            | GT                            { printf("Line %d Token: %s\n", $1->line, ">"); }
-            | MUL                           { printf("Line %d Token: %s\n", $1->line, "*"); }
-            | DIV                           { printf("Line %d Token: %s\n", $1->line, "/"); }
-            | MOD                           { printf("Line %d Token: %s\n", $1->line, "%"); }
-            | RAND                          { printf("Line %d Token: %s\n", $1->line, "?"); }
-            | ASS                           { printf("Line %d Token: %s\n", $1->line, "="); }
-            | OR                            { printf("Line %d Token: %s\n", $1->line, "OR"); }
-            | LPAR                          { printf("Line %d Token: %s\n", $1->line, "("); }
-            | RPAR                          { printf("Line %d Token: %s\n", $1->line, ")"); }
-            | LBRK                          { printf("Line %d Token: %s\n", $1->line, "["); }
-            | RBRK                          { printf("Line %d Token: %s\n", $1->line, "]"); }
-            | SC                            { printf("Line %d Token: %s\n", $1->line, ";"); }
-            | CM                            { printf("Line %d Token: %s\n", $1->line, ","); }
-            | CN                            { printf("Line %d Token: %s\n", $1->line, ":"); }
-            ;
+declaration
+          : varDec
+          | funDec
+          ;
+
+//-------------------- Variables --------------------
+varDec
+          : typeSpec varDecList ';'
+          ;
+
+scopedVarDec
+          : STATIC typeSpec varDecList ';'
+          | typeSpec varDecList ';'
+          ;
+
+varDecList
+          : varDecList ',' varDecInit
+          | varDecInit
+          ;
+
+varDecInit
+          : varDecId
+          | varDecId ':' simpleExp
+          ;
+
+varDecId
+          : ID 
+          | ID '[' NUMCONST ']'
+          ;
+
+typeSpec
+          : BOOL
+          | CHAR
+          | INT
+          ;
+
+//-------------------- Functions --------------------
+funDec
+          : typeSpec ID '(' params ')' compoundStmt
+          |          ID '(' params ')' compoundStmt
+          ;
+
+params 
+          : paramList
+          |
+          ;
+
+paramList 
+          : paramList ';' paramTypeList
+          | paramTypeList
+          ;
+
+paramTypeList
+          : typeSpec paramIdList
+          ;
+
+paramIdList
+          : paramIdList ',' paramId
+          | paramId
+          ;
+
+paramId
+          : ID
+          | ID '[' ']'
+          ;
+
+//-------------------- Statements --------------------
+statement 
+          : expressionStmt
+          | compoundStmt
+          | selectStmt
+          | iterationStmt
+          | returnStmt
+          | breakStmt
+          ;
+
+expressionStmt
+          : expression ';'
+          | ';'
+          ;
+
+compoundStmt
+          : BEG localDecs stmtList END
+          ;
+
+localDecs
+          : localDecs scopedVarDec
+          |
+          ;
+
+stmtList 
+          : stmtList statement
+          |
+          ;
+
+// Dangling else
+selectStmt
+          : IF simpleExp THEN statement
+          | IF simpleExp THEN statement ELSE statement
+          ;
+
+iterationStmt
+          : WHILE simpleExp DO statement
+          | FOR ID ASGN iterationRange DO statement
+          ;
+
+iterationRange
+          : simpleExp TO simpleExp
+          | simpleExp TO simpleExp BY simpleExp
+          ;
+
+returnStmt
+          : RETURN ';'
+          | RETURN expression ';'
+          ;
+
+breakStmt
+          : BREAK ';'
+          ;
+
+//-------------------- Expressions --------------------
+expression
+          : mutable assignop expression
+          | mutable INC
+          | mutable DEC
+          | simpleExp
+          ;
+
+assignop
+          : ASGN
+          | ADDASS
+          | SUBASS
+          | MULASS
+          | DIVASS
+          ;
+
+simpleExp
+          : simpleExp OR andExp
+          | andExp
+          ;
+
+andExp
+          : andExp AND unaryRelExp
+          | unaryRelExp
+          ;
+
+unaryRelExp
+          : NOT unaryRelExp
+          | relExp
+          ;
+
+relExp
+          : sumExp relop sumExp 
+          | sumExp
+          ;
+
+relop
+          : LT
+          | GT
+          | LEQ
+          | GEQ
+          | ASS
+          | NEQ
+          ;
+
+sumExp
+          : sumExp sumop mulExp
+          | mulExp
+          ;
+
+sumop
+          : ADD
+          | SUB
+          ;
+
+mulExp
+          : mulExp mulop unaryExp
+          | unaryExp
+          ;
+
+mulop
+          : MUL
+          | DIV
+          | MOD
+          ;
+
+unaryExp
+          : unaryop unaryExp
+          | factor
+          ;
+
+unaryop
+          : SUB
+          | MUL
+          | RAND
+          ;
+
+factor
+          : mutable
+          | immutable
+          ;
+
+mutable
+          : ID
+          | ID '[' expression ']'
+          ;
+
+immutable
+          : '(' expression ')'
+          | call
+          | constant
+          ;
+
+call
+          : ID '(' args ')'
+          ;
+
+args
+          : argList
+          |
+          ;
+
+argList
+          : argList ',' expression
+          | expression
+          ;
+
+constant
+          : NUMCONST
+          | CHARCONST
+          | STRINGCONST
+          | BOOLCONST
+          ;
 
 %%
 

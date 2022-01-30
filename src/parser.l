@@ -136,6 +136,7 @@ static int buildToken(int tokenClass, char *tokenString) {
 "not"								{ return buildToken(NOT, yytext); }
 "to"								{ return buildToken(TO, yytext); }
 "by"								{ return buildToken(BY, yytext); }
+"do"								{ return buildToken(DO, yytext); }
 "true"|"false"						{ return buildToken(BOOLCONST, yytext); }
 "<-"								{ return buildToken(ASGN, yytext); }
 "+="								{ return buildToken(ADDASS, yytext); }
@@ -157,13 +158,6 @@ static int buildToken(int tokenClass, char *tokenString) {
 %									{ return buildToken(MOD, yytext); }
 \?									{ return buildToken(RAND, yytext); }
 =									{ return buildToken(ASS, yytext); }
-\[									{ return buildToken(LBRK, yytext); }
-\]									{ return buildToken(RBRK, yytext); }
-\(									{ return buildToken(LPAR, yytext); }
-\)									{ return buildToken(RPAR, yytext); }
-\;									{ return buildToken(SC, yytext); }
-\,									{ return buildToken(CM, yytext); }
-\:									{ return buildToken(CN, yytext); }
 [a-zA-Z][a-zA-Z0-9]*				{ return buildToken(ID, yytext); }
 [0-9]+								{ return buildToken(NUMCONST, yytext); }
 '([^\n\\']|\\.)*'					{ return buildToken(CHARCONST, yytext); }
