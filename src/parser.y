@@ -104,12 +104,22 @@ paramId
 
 //-------------------- Statements --------------------
 statement 
+          : closedStmt
+          | openStmt
+          ;
+
+closedStmt
           : expressionStmt
           | compoundStmt
-          | selectStmt
-          | iterationStmt
+          | closedSelectStmt
+          | closedIterationStmt
           | returnStmt
           | breakStmt
+          ;
+
+openStmt
+          : openSelectStmt
+          | openIterationStmt
           ;
 
 expressionStmt
@@ -132,14 +142,23 @@ stmtList
           ;
 
 // Dangling else
-selectStmt
-          : IF simpleExp THEN statement
-          | IF simpleExp THEN statement ELSE statement
+closedSelectStmt
+          : IF simpleExp THEN closedStmt ELSE closedStmt
           ;
 
-iterationStmt
-          : WHILE simpleExp DO statement
-          | FOR ID ASGN iterationRange DO statement
+openSelectStmt
+          : IF simpleExp THEN statement
+          | IF simpleExp THEN closedStmt ELSE openStmt
+          ;
+
+closedIterationStmt
+          : WHILE simpleExp DO closedStmt
+          | FOR ID ASGN iterationRange DO closedStmt
+          ;
+
+openIterationStmt
+          : WHILE simpleExp DO openStmt
+          | FOR ID ASGN iterationRange DO openStmt
           ;
 
 iterationRange
