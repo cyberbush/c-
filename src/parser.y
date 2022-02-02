@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <iostream>
 #include <stdlib.h>
+#include <AST_Tree.h>
 #include "scanType.h"  // TokenData Type
 using namespace std;
 
@@ -15,7 +16,9 @@ extern void yyerror(const char *s);
 %}
 
 %union {
-  TokenData *tokenData;
+    ExpType type; // For passing types (i.e pass a type in a decl like int or bool)
+    TokenData *tokenData; // For terminals. Token data comes from yylex() in the $ vars
+    AST_Tree * tree; // For nonterminals. Add these nodes as you build the tree.
 }
 
 // define token types
@@ -24,6 +27,19 @@ extern void yyerror(const char *s);
 %token <tokenData> EQ ADDASS SUBASS DIVASS MULASS LEQ GEQ NEQ DEC INC
 %token <tokenData> ADD SUB LT GT MUL DIV MOD RAND ASS AND OR NOT 
 %token <tokenData> BEG END THEN ASGN TO BY DO
+
+%start program
+
+%type <tree> program decList declaration varDec scopedVarDec varDecList
+%type <tree> varDecInit varDecId funDec params paramList call 65
+%type <tree> paramTypeList paramIdList paramId statement closedStmt
+%type <tree> openStmt expressionStmt compoundStmt localDecs stmtList
+%type <tree> closedSelectStmt openSelectStmt closedIterationStmt
+%type <tree> openIterationStmt iterationRange returnStmt breakStmt
+%type <tree> expression assignop simpleExp andExp unaryRelExp relExp
+%type <tree> sumExp mulExp unaryExp factor mutable immutable args argList 
+%type <tree> constant typeSpec unaryop mulop sumop
+%type <tokenData> relop
 %%
 
 //-------------------- Grammar Structure --------------------
