@@ -3,9 +3,10 @@
 #include <iostream>
 #include <stdlib.h>
 #include <string.h>
-#include "scanType.h"   // TokenData Type
-#include "AST_Tree.cpp"   // AST Tree
-#include "utils.cpp"      // Utility functions
+#include "scanType.h"       // TokenData Type
+#include "AST_Tree.h"       // AST Tree
+#include "utils.cpp"          // Utility functions
+#include "printTree.cpp"      // Printing AST tree
 using namespace std;
 
 // Declare stuff from Flex that Bison needs to know about:
@@ -501,7 +502,7 @@ int main(int argc, char *argv[])
         }
     }
     yyparse();
-    printTree(root);
+    printAST(root, -1, 0);
 }
 
 // needs to be updated?
