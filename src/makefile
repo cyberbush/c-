@@ -2,8 +2,8 @@ BIN = parser
 EX = c-
 CC = g++
 
-SRCS = $(BIN).y  $(BIN).l
-HDRS = scanType.h
+SRCS = $(BIN).y  $(BIN).l AST_Tree.cpp utils.cpp
+HDRS = scanType.h AST_Tree.h utils.h
 OBJS = lex.yy.c $(BIN).tab.c
 
 $(BIN) : $(OBJS)
