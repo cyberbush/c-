@@ -5,13 +5,14 @@
 #include <stdio.h>
 #include <string>
 
+
 // The max children that a tree node can have
 #define MAX_CHILDREN 3
 
 //------------------- Type Definitions -------------------
 // Kinds of Operators these are the token numbers for the operators same as in flex
 typedef int OpKind;
-enum NodeKind {DeclK, StmtK, ExpK, TerminalK}; // Kinds of Statements
+enum NodeKind {DeclK, StmtK, ExpK, TermK}; // Kinds of Statements
 enum DeclKind {VarK, FuncK, ParamK}; // Subkinds of Declarations
 enum StmtKind {NullK, IfK, WhileK, ForK, CompoundK, ReturnK, BreakK, RangeK}; // Subkinds of Statements
 enum ExpKind {OpK, ConstantK, IdK, AssignK, InitK, CallK}; // Subkinds of Expressions
@@ -67,13 +68,5 @@ public:
     bool isStatic; // is staticly allocated?
     bool isInitialized; // is it initialized?
 };
-
-// Creating Node Functions
-static AST_Tree* createNode(NodeKind);
-static AST_Tree* createNodeFromToken(TokenData*, int);
-static AST_Tree* createOpNode(const char*, int, AST_Tree*, AST_Tree*, AST_Tree*);
-static AST_Tree* createStmtNode(StmtKind, const char*, int, AST_Tree*, AST_Tree*, AST_Tree*);
-static AST_Tree* createDeclNode(DeclKind, ExpType, const char*, int, AST_Tree*, AST_Tree*, AST_Tree*);
-
 
 #endif
