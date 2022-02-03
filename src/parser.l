@@ -89,7 +89,6 @@ static int buildToken(int tokenClass, char *tokenString) {
 	yylval.tokenData->tokenClass = tokenClass;
 	yylval.tokenData->line = lineNum;
 	yylval.tokenData->tokenString = strdup(tokenString);
-
 	switch(tokenClass) {
 	case NUMCONST:
 		yylval.tokenData->nValue = atoi(tokenString);
@@ -108,7 +107,6 @@ static int buildToken(int tokenClass, char *tokenString) {
 	}
 
 	// lastToken = strdup(tokenString);
-	
 	return tokenClass;
 }
 
