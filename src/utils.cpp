@@ -1,17 +1,16 @@
 //------------------ utils.cpp ------------------
 #include "utils.h"
-#include "AST_Tree.h"
+#include "AST_Node.h"
 #include "scanType.h"
 /*
-*   The utils file will be used for utility functions
-*   such as printing, building nodes, ect.
+*   The utils file will be used for utility functions.
 */
 
 
-// Creates a new AST_Tree node and set general type
-AST_Tree* createNode(NodeKind nodeK)
+// Creates a new AST_Node node and set general type
+AST_Node* createNode(NodeKind nodeK)
 {
-    AST_Tree* newNode = new AST_Tree;
+    AST_Node* newNode = new AST_Node;
     newNode->sibling = NULL;
     newNode->child[0] = NULL;
     newNode->child[1] = NULL;
@@ -20,10 +19,10 @@ AST_Tree* createNode(NodeKind nodeK)
     return newNode;
 }
 
-// Takes a TokenData and creates a AST_Tree node
-static AST_Tree* createNodeFromToken(TokenData* tokenData, int type)
+// Takes a TokenData and creates a AST_Node node
+static AST_Node* createNodeFromToken(TokenData* tokenData, int type)
 {
-    AST_Tree* newNode = new AST_Tree;
+    AST_Node* newNode = new AST_Node;
     newNode->sibling = NULL;
     newNode->child[0] = NULL;
     newNode->child[1] = NULL;
@@ -60,6 +59,7 @@ static AST_Tree* createNodeFromToken(TokenData* tokenData, int type)
         default:
             printf("Error creating node from token, type: %d\n", type);
     }
+    newNode->attrib.name = strdup(tokenData->tokenString);
     newNode->lineNum = tokenData->line;
 
     return newNode;
@@ -67,9 +67,9 @@ static AST_Tree* createNodeFromToken(TokenData* tokenData, int type)
 
 
 // Create ExpK (expression) node of type OpK (operator)
-AST_Tree* createOpNode(const char* s, int linenum, AST_Tree* child0, AST_Tree* child1, AST_Tree* child2)
+AST_Node* createOpNode(const char* s, int linenum, AST_Node* child0, AST_Node* child1, AST_Node* child2)
 {
-    AST_Tree* newNode = new AST_Tree;
+    AST_Node* newNode = new AST_Node;
     newNode->nodeKind = ExpK;
     newNode->subkind.exp = OpK;
     newNode->sibling = NULL;
@@ -81,16 +81,16 @@ AST_Tree* createOpNode(const char* s, int linenum, AST_Tree* child0, AST_Tree* c
     if((s == "=") || (s == "><"))
       newNode->expType = Equal;
 
-    // printf("CREATING NODE FOR OP %s: on line number = %d\n", s, linenum);
+    // printf("Creating Op node: %s: on line number = %d\n", s, linenum);
     newNode->attrib.name = s;
 
     return newNode;
 }
 
 // Create a StmtK node (statement)
-AST_Tree* createStmtNode(StmtKind stmtKind, const char* s, int linenum, AST_Tree* child0, AST_Tree* child1, AST_Tree* child2)
+AST_Node* createStmtNode(StmtKind stmtKind, const char* s, int linenum, AST_Node* child0, AST_Node* child1, AST_Node* child2)
 {
-    AST_Tree* newNode = new AST_Tree;
+    AST_Node* newNode = new AST_Node;
     newNode->nodeKind = StmtK;
     newNode->subkind.stmt = stmtKind;
     newNode->sibling = NULL;
@@ -100,15 +100,15 @@ AST_Tree* createStmtNode(StmtKind stmtKind, const char* s, int linenum, AST_Tree
     newNode->lineNum = linenum;
     newNode->attrib.name = s;
 
-    // printf("CREATING NODE FOR STMT %s: on line number = %d\n", s, linenum);
+    //printf("Creating Stmt node: %s: on line number = %d\n", s, linenum);
 
     return newNode;
 }
 
 // Create a DeclK node (declaration)
-AST_Tree* createDeclNode(DeclKind declKind, ExpType type, const char* s, int linenum, AST_Tree* child0, AST_Tree* child1, AST_Tree* child2)
+AST_Node* createDeclNode(DeclKind declKind, ExpType type, const char* s, int linenum, AST_Node* child0, AST_Node* child1, AST_Node* child2)
 {
-    AST_Tree* newNode = new AST_Tree;
+    AST_Node* newNode = new AST_Node;
     newNode->nodeKind = DeclK;
     if(declKind == ParamK) {newNode->varKind = Parameter;}
     newNode->subkind.decl = declKind;
@@ -117,15 +117,15 @@ AST_Tree* createDeclNode(DeclKind declKind, ExpType type, const char* s, int lin
     newNode->child[1] = child1;
     newNode->child[2] = child2;
     newNode->lineNum = linenum;
-    newNode->attrib.name = s;
+    newNode->attrib.name = strdup(s);
     newNode->expType = type;
 
-    // printf("CREATING NODE FOR DECL %s: on line number = %d\n", s, linenum);
+    // printf("Creating DeclK Node: %s: on line number = %d\n", s, linenum);
 
     return newNode;
 }
 
-int countSiblings(AST_Tree* t)
+int countSiblings(AST_Node* t)
 {
     int count = 0;
     while (t != NULL)
@@ -136,7 +136,7 @@ int countSiblings(AST_Tree* t)
     return count;
 }
 
-AST_Tree* getLastSibling(AST_Tree* t)
+AST_Node* getLastSibling(AST_Node* t)
 {
     while ( t->sibling != NULL)
     {

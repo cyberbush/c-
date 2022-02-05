@@ -8,16 +8,16 @@
 
 
 // Creating Node Functions
-static AST_Tree* createNode(NodeKind);
-static AST_Tree* createNodeFromToken(TokenData*, int);
-static AST_Tree* createOpNode(const char*, int, AST_Tree*, AST_Tree*, AST_Tree*);
-static AST_Tree* createStmtNode(StmtKind, const char*, int, AST_Tree*, AST_Tree*, AST_Tree*);
-static AST_Tree* createDeclNode(DeclKind, ExpType, const char*, int, AST_Tree*, AST_Tree*, AST_Tree*);
+static AST_Node* createNode(NodeKind);
+static AST_Node* createNodeFromToken(TokenData*, int);
+static AST_Node* createOpNode(const char*, int, AST_Node*, AST_Node*, AST_Node*);
+static AST_Node* createStmtNode(StmtKind, const char*, int, AST_Node*, AST_Node*, AST_Node*);
+static AST_Node* createDeclNode(DeclKind, ExpType, const char*, int, AST_Node*, AST_Node*, AST_Node*);
 
 // Function to count number of arguments for a AST Tree node
-int countSiblings(AST_Tree*);
+int countSiblings(AST_Node* t);
 // Returns the sibling to the far right
-AST_Tree* getLastSibling(AST_Tree*);
+AST_Node* getLastSibling(AST_Node* t);
 // Takes an ExpType and returns the corresponding string
 const char* ExpTypeToStr(ExpType type);
 
