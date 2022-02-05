@@ -1,6 +1,6 @@
-//------------------ AST_Tree Header ------------------
-#ifndef _AST_TREE_H_
-#define _AST_TREE_H_
+//------------------ AST_Node Header ------------------
+#ifndef _AST_Node_H_
+#define _AST_Node_H_
 
 #include <stdio.h>
 #include <string>
@@ -23,8 +23,8 @@ enum VarKind {None, Local, Global, Parameter, LocalStatic};
 // What type of terminal
 enum TermKind {NUMC, DECL, IDD};
 
-typedef struct AST_Tree AST_Tree;
-struct AST_Tree {
+typedef struct AST_Node AST_Node;
+struct AST_Node {
 
 public:
     /* 
@@ -36,8 +36,8 @@ public:
     *
     */
     // Related nodes
-    AST_Tree *child[MAX_CHILDREN]; // Node can have a max of 3 children but
-    AST_Tree *sibling; // Only 1 sibling
+    AST_Node *child[MAX_CHILDREN]; // Node can have a max of 3 children but
+    AST_Node *sibling; // Only 1 sibling
 
     //------------------- Variables -------------------
     NodeKind nodeKind; // Type of this node 
