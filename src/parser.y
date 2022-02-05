@@ -4,7 +4,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "scanType.h"       // TokenData Type
-#include "AST_Tree.h"       // AST Tree
+#include "AST_Node.h"       // AST Tree Node Structure
 #include "utils.cpp"          // Utility functions
 #include "printTree.cpp"      // Printing AST tree
 using namespace std;
@@ -12,10 +12,11 @@ using namespace std;
 // Declare stuff from Flex that Bison needs to know about:
 extern int yylex();
 extern int yyparse();
-extern FILE *yyin;
-extern int errNum;
+extern FILE *yyin;          // input source file
+extern int errNum;          // number of errors
+extern int yydebug;         // yydebug flag
 
-static AST_Tree* root; // root of the tree
+static AST_Node* root;      // root of the tree
 
 extern void yyerror(const char *s);
 %}
@@ -23,7 +24,7 @@ extern void yyerror(const char *s);
 %union {
     // ExpType type; // For passing types (i.e pass a type in a decl like int or bool)
     struct TokenData *tokenData; // For terminals. Token data comes from yylex() in the $ vars
-    struct AST_Tree* tree; // For nonterminals. Add these nodes as you build the tree.
+    struct AST_Node* tree; // For nonterminals. Add these nodes as you build the tree.
 }
 
 // define token types
@@ -54,7 +55,7 @@ program
 
 decList   
           : decList declaration             { 
-                                                AST_Tree* t = $1; 
+                                                AST_Node* t = $1; 
                                                 if(t != NULL) {
                                                     while(t->sibling != NULL){ // keep traversing right
                                                         t = t->sibling;
@@ -75,7 +76,7 @@ declaration
 varDec
           : typeSpec varDecList ';'         {
                                                 $$ = $2;
-                                                AST_Tree* t = $2;
+                                                AST_Node* t = $2;
                                                 while(t != NULL) { // go through and save the expType
                                                     t->expType = $1->expType;
                                                     if(t->child[0] != NULL && t->child[0]->subkind.exp == InitK) t->child[0]->expType = $1->expType;
@@ -87,7 +88,7 @@ varDec
 scopedVarDec
           : STATIC typeSpec varDecList ';'  {
                                                 $$ = $3;
-                                                AST_Tree* t = $3;
+                                                AST_Node* t = $3;
                                                 while(t != NULL) {
                                                     t->expType = $2->expType;
                                                     if(t->child[0] != NULL && t->child[0]->subkind.exp == InitK) t->child[0]->expType = $2->expType;
@@ -98,7 +99,7 @@ scopedVarDec
                                             }
           | typeSpec varDecList ';'         {
                                                 $$ = $2;
-                                                AST_Tree* t = $2;
+                                                AST_Node* t = $2;
                                                 while(t != NULL) {
                                                     t->expType = $1->expType;
                                                     if(t->child[0] != NULL && t->child[0]->subkind.exp == InitK) t->child[0]->expType = $1->expType;
@@ -110,7 +111,7 @@ scopedVarDec
 varDecList
           : varDecList ',' varDecInit       {
                                                 if($1 != NULL) {
-                                                    AST_Tree* t = $1;
+                                                    AST_Node* t = $1;
                                                     while(t->sibling != NULL)
                                                         t = t->sibling;
                                                     t->sibling = $3;
@@ -127,7 +128,7 @@ varDecInit
                                                 $$ = $1;
                                                 if($3 != NULL){
                                                     $$->child[0] = $3;
-                                                    $$->subkind.exp = InitK;
+                                                    $$->isInitialized = true;
                                                 }
                                             }
           ;
@@ -175,7 +176,7 @@ paramList
           : paramList ';' paramTypeList     {
                                                 $$ = $1;
                                                 if($1 != NULL) {
-                                                    AST_Tree* t = $1;
+                                                    AST_Node* t = $1;
                                                     while(t->sibling != NULL) {
                                                         t = t->sibling;
                                                     }
@@ -188,7 +189,7 @@ paramList
 paramTypeList
           : typeSpec paramIdList            {
                                                 $$ = $2;
-                                                AST_Tree* t = $2;
+                                                AST_Node* t = $2;
                                                 while(t != NULL) {
                                                     t->expType = $1->expType;
                                                     t = t->sibling;
@@ -200,7 +201,7 @@ paramIdList
           : paramIdList ',' paramId         {
                                                 $$ = $1;
                                                 if($1 != NULL) {
-                                                    AST_Tree* t = $1;
+                                                    AST_Node* t = $1;
                                                     while(t->sibling != NULL) {
                                                         t = t->sibling;
                                                     }
@@ -254,7 +255,7 @@ compoundStmt
 
 localDecs
           : localDecs scopedVarDec          {
-                                                AST_Tree* t = $1;
+                                                AST_Node* t = $1;
                                                 if(t != NULL)
                                                 {
                                                     while(t->sibling != NULL) {
@@ -269,7 +270,7 @@ localDecs
 
 stmtList 
           : stmtList statement              {
-                                                AST_Tree* t = $1;
+                                                AST_Node* t = $1;
                                                 if(t != NULL) {
                                                     while(t->sibling != NULL) {
                                                         t = t->sibling;
@@ -294,7 +295,7 @@ openSelectStmt
 closedIterationStmt
           : WHILE simpleExp DO closedStmt                       { $$ = createStmtNode(WhileK, "", $1->line, $2, $4, NULL); }
           | FOR ID ASGN iterationRange DO closedStmt            {
-                                                                    AST_Tree* n = createNodeFromToken($2, -1);
+                                                                    AST_Node* n = createNodeFromToken($2, -1);
                                                                     n->nodeKind = DeclK;
                                                                     n->subkind.decl = VarK;
                                                                     n->expType = Integer;
@@ -306,7 +307,7 @@ closedIterationStmt
 openIterationStmt
           : WHILE simpleExp DO openStmt                         { $$ = createStmtNode(WhileK, "", $1->line, $2, $4, NULL); }
           | FOR ID ASGN iterationRange DO openStmt              {
-                                                                    AST_Tree* n = createNodeFromToken($2, -1);
+                                                                    AST_Node* n = createNodeFromToken($2, -1);
                                                                     n->nodeKind = DeclK;
                                                                     n->subkind.decl = VarK;
                                                                     n->expType = Integer;
@@ -398,8 +399,8 @@ sumop
           ;
 
 mulExp
-          : mulExp mulop unaryExp               
-          | unaryExp
+          : mulExp mulop unaryExp               { $$ = createOpNode($2->attrib.name, $2->lineNum, $1, $3, NULL); }
+          | unaryExp                            { $$ = $1; }
           ;
 
 mulop
@@ -409,8 +410,8 @@ mulop
           ;
 
 unaryExp
-          : unaryop unaryExp
-          | factor
+          : unaryop unaryExp                    { $$ = $1;  $$->child[0] = $2; }
+          | factor                              { $$ = $1; }
           ;
 
 unaryop
@@ -453,7 +454,7 @@ args
 
 argList
           : argList ',' expression              {
-                                                    AST_Tree* t = $1;
+                                                    AST_Node* t = $1;
                                                     if (t != NULL) {
                                                         while(t->sibling != NULL) {
                                                             t = t->sibling;
@@ -491,8 +492,32 @@ constant
 // C code to openfile
 int main(int argc, char *argv[])
 {
+    bool printTreeFlag = false;
+    char option = '0';
+    
+    // check for options
+    for(int i = 1; i < argc-1; i++) {
+        int str_size = strlen(argv[i]);
+        if(argv[i][0] == '-' && str_size == 2) {
+            option = argv[i][1];
+        }
+    }
+
+    switch(option) {
+        case 'p': // print tree
+            printTreeFlag = true;
+            break;
+        case 'd': // enable debugging
+            yydebug = 1;
+            break;
+        case '0': // no option
+            break;
+        default:  // error
+            printf("Error inputing option: %c\n", option);
+    }
+
     if (argc > 1) {
-        if ((yyin = fopen(argv[1], "r"))) {
+        if ((yyin = fopen(argv[argc-1], "r"))) {
             // file open successful
         }
         else {
@@ -502,7 +527,11 @@ int main(int argc, char *argv[])
         }
     }
     yyparse();
-    printAST(root, -1, 0);
+    
+    // print tree if true
+    if(printTreeFlag) {
+        printAST(root, -1, 0);
+    }
 }
 
 // needs to be updated?
