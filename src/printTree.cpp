@@ -1,20 +1,20 @@
 //------------------ printTree.cpp ------------------
 #include "printTree.h"
-#include "AST_Tree.h"
+#include "AST_Node.h"
 #include "utils.h"
 
-void printAST(AST_Tree* root, int childNum, int level)
+void printAST(AST_Node* root, int childNum, int level)
 {
     if(root == NULL) return;
-    // print indent level
+    // Print the indention level
     for(int i = 0; i < level; i++)
     {
         printf(".   ");
     }
     if(childNum >= 0) printf("Child: %i  ", childNum);
-    printNode(root);  // print root on same line
+    printNode(root);  // Print root at same level
     printf(" [line: %i]\n", root->lineNum);
-    for(int i = 0; i < 3; i++)  // print trees below children
+    for(int i = 0; i < 3; i++)  // Print everything below the child
     {
       if(root->child[i] != NULL){
           printAST(root->child[i], i, level+1);
@@ -23,22 +23,22 @@ void printAST(AST_Tree* root, int childNum, int level)
 
     if(root->sibling != NULL)
     {
-        printSiblingAST(root->sibling, 1, level); // if there is a sibling print it
+        printSiblingAST(root->sibling, 1, level); // Print the sibling tree
     }
 }
 
-void printSiblingAST(AST_Tree* root, int siblingOrder, int level)
+void printSiblingAST(AST_Node* root, int siblingOrder, int level)
 {
-    // print indent level
+    // Print the indention level
     for(int i = 0; i < level; i++)
     {
         printf(".   ");
     }
     // print sibling index
     printf("Sibling: %i  ", siblingOrder);
-    printNode(root);  // print root on same line
+    printNode(root);  // Print root at same level
     printf(" [line: %i]\n", root->lineNum);
-    for(int i = 0; i < 3; i++)  // print trees below children
+    for(int i = 0; i < 3; i++)  // Print everything below the child
     {
       if(root->child[i] != NULL){
         printAST(root->child[i], i, level+1);
@@ -47,11 +47,11 @@ void printSiblingAST(AST_Tree* root, int siblingOrder, int level)
 
     if(root->sibling != NULL)
     {
-        printSiblingAST(root->sibling, ++siblingOrder, level); // if there is a sibling print it
+        printSiblingAST(root->sibling, ++siblingOrder, level); // Print the sibling tree
     }
 }
 
-void printNode(AST_Tree* n)
+void printNode(AST_Node* n)
 {
     if(n == NULL) return;
     switch(n->nodeKind)
@@ -69,12 +69,12 @@ void printNode(AST_Tree* n)
             printTerm(n);
             break;
         default:
-            printf("Error printing node. NodeKind undefined\n");
+            printf("Error: NodeKind undefined\n");
             break;
     }
 }
 
-void printTerm(AST_Tree* n)
+void printTerm(AST_Node* n)
 {
     switch(n->subkind.term)
     {
@@ -83,35 +83,34 @@ void printTerm(AST_Tree* n)
             break;
 
         default:
-            printf("ERROR UNKNOWN TermKind\n");
+            printf("Error: Unknown TermKind\n");
             break;
     }
 }
 
-void printDecl(AST_Tree* n)
+void printDecl(AST_Node* n)
 {
     switch(n->subkind.decl)
     {
-        case FuncK:
-            printf("Func: %s returns type %s", n->attrib.name, ExpTypeToStr(n->expType));
-            break;
-
         case VarK:
             if(n->isArray) printf("Var: %s of array of type %s", n->attrib.name, ExpTypeToStr(n->expType));
             else if(n->isStatic) printf("Var: %s of static type %s", n->attrib.name, ExpTypeToStr(n->expType));
             else printf("Var: %s of type %s", n->attrib.name, ExpTypeToStr(n->expType));
+            break;        
+        case FuncK:
+            printf("Func: %s returns type %s", n->attrib.name, ExpTypeToStr(n->expType));
             break;
         case ParamK:
             if(n->isArray) {printf("Parm: %s of array of type %s", n->attrib.name, ExpTypeToStr(n->expType));}
             else {printf("Parm: %s of type %s", n->attrib.name, ExpTypeToStr(n->expType));}
             break;
         default:
-            printf("ERROR unknown subtype of DECL\n");
+            printf("Error: unknown subtype of DECL\n");
             break;
     }
 }
 
-void printStmt(AST_Tree* n)
+void printStmt(AST_Node* n)
 {
     switch(n->subkind.stmt)
     {
@@ -137,11 +136,11 @@ void printStmt(AST_Tree* n)
             printf("Range");
             break;
         default:
-            printf("ERROR UNKOWN StmtKind\n");
+            printf("Error: Unknown StmtKind\n");
     }
 }
 
-void printExp(AST_Tree* n)
+void printExp(AST_Node* n)
 {
     switch(n->subkind.exp)
     {
@@ -163,7 +162,7 @@ void printExp(AST_Tree* n)
         case InitK:
             break;
         default:
-            printf("Error printing subkind Exp, undefined\n");
+            printf("Error: Unknown ExpKind\n");
             break;
     }
 }
