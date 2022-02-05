@@ -3,7 +3,7 @@ EX = c-
 CC = g++
 
 SRCS = $(BIN).y  $(BIN).l printTree.cpp utils.cpp
-HDRS = scanType.h AST_Tree.h utils.h printTree.h
+HDRS = scanType.h AST_Node.h utils.h printTree.h
 OBJS = lex.yy.c $(BIN).tab.c
 
 $(BIN) : $(OBJS)
@@ -20,7 +20,3 @@ clean :
 
 tar : $(HDR) $(SRCS) makefile
 	tar -cvf $(BIN).tar $(HDRS) $(SRCS) makefile
-
-run : 
-	./$(EX) test.c- > out.txt
-	diff out.txt test.txt
