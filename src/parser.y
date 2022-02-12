@@ -5,8 +5,9 @@
 #include <string.h>
 #include "scanType.h"       // TokenData Type
 #include "AST_Node.h"       // AST Tree Node Structure
-#include "utils.cpp"          // Utility functions
-#include "printTree.cpp"      // Printing AST tree
+#include "utils.cpp"        // Utility functions
+#include "treeUtil.cpp"     // Tree utility functions
+#include "printTree.cpp"    // Printing AST tree
 using namespace std;
 
 // Declare stuff from Flex that Bison needs to know about:
@@ -96,6 +97,7 @@ scopedVarDec
                                                     t->varKind = LocalStatic;
                                                     t = t->sibling;
                                                 } 
+                                                removeToken(&$1);
                                             }
           | typeSpec varDecList ';'         {
                                                 $$ = $2;
@@ -136,22 +138,28 @@ varDecInit
 varDecId
           : ID                              {
                                                 $$ = createDeclNode(VarK, UndefinedType, $1->tokenString, $1->line, NULL, NULL, NULL);
+                                                removeToken(&$1);
                                             }
           | ID '[' NUMCONST ']'             {
                                                 $$ = createDeclNode(VarK, UndefinedType, $1->tokenString, $1->line, NULL, NULL, NULL);
                                                 $$->isArray = true;
+                                                removeToken(&$1);
+                                                removeToken(&$3);
                                             }
           ;
 
 typeSpec
           : BOOL                            {
                                                 $$ = createNodeFromToken($1, 0);
+                                                removeToken(&$1);
                                             }
           | CHAR                            {
                                                 $$ = createNodeFromToken($1, 1);
+                                                removeToken(&$1);
                                             }
           | INT                             {
                                                 $$ = createNodeFromToken($1, 2);
+                                                removeToken(&$1);
                                             }
           ;
 
@@ -159,11 +167,13 @@ typeSpec
 funDec
           : typeSpec ID '(' params ')' compoundStmt         {
                                                                 $$ = createDeclNode(FuncK, $1->expType, $2->tokenString, $2->line, $4, $6, NULL);
-                                                                $6->attrib.name = $2->tokenString; // save name for scope 
+                                                                $6->printName = $2->tokenString; // save name for scope 
+                                                                removeToken(&$2);
                                                             }
           |          ID '(' params ')' compoundStmt         {
                                                                 $$ = createDeclNode(FuncK, Void, $1->tokenString, $1->line, $3, $5, NULL);
-                                                                $5->attrib.name = $1->tokenString;  // save name for scope                                                 
+                                                                $5->printName = $1->tokenString;  // save name for scope     
+                                                                removeToken(&$1);                                            
                                                             }
           ;
 
@@ -214,10 +224,12 @@ paramIdList
 paramId
           : ID                              {
                                                 $$ = createDeclNode(ParamK, UndefinedType, $1->tokenString, $1->line, NULL, NULL, NULL);
+                                                removeToken(&$1);
                                             }
           | ID '[' ']'                      {
                                                 $$ = createDeclNode(ParamK, UndefinedType, $1->tokenString, $1->line, NULL, NULL, NULL);
                                                 $$->isArray = true;
+                                                removeToken(&$1);
                                             }
           ;
 
@@ -249,7 +261,9 @@ expressionStmt
 compoundStmt
           : BEG localDecs stmtList END      {
                                                 $$ = createStmtNode(CompoundK, "", $1->line, $2, $3, NULL);
-                                                $$->attrib.name = strdup("comp scope");
+                                                $$->printName = strdup("comp scope");
+                                                removeToken(&$1);
+                                                removeToken(&$4);
                                             }
           ;
 
@@ -284,16 +298,34 @@ stmtList
 
 // Dangling else
 closedSelectStmt
-          : IF simpleExp THEN closedStmt ELSE closedStmt        { $$ = createStmtNode(IfK, "if", $1->line, $2, $4, $6); }
+          : IF simpleExp THEN closedStmt ELSE closedStmt        { 
+                                                                    $$ = createStmtNode(IfK, "if", $1->line, $2, $4, $6); 
+                                                                    removeToken(&$1);
+                                                                    removeToken(&$3);
+                                                                    removeToken(&$5);
+                                                                }
           ;
 
 openSelectStmt
-          : IF simpleExp THEN statement                         { $$ = createStmtNode(IfK, "if", $1->line, $2, $4, NULL); }
-          | IF simpleExp THEN closedStmt ELSE openStmt          { $$ = createStmtNode(IfK, "if", $1->line, $2, $4, $6); }
+          : IF simpleExp THEN statement                         { 
+                                                                    $$ = createStmtNode(IfK, "if", $1->line, $2, $4, NULL); 
+                                                                    removeToken(&$1);
+                                                                    removeToken(&$3);
+                                                                }
+          | IF simpleExp THEN closedStmt ELSE openStmt          { 
+                                                                    $$ = createStmtNode(IfK, "if", $1->line, $2, $4, $6); 
+                                                                    removeToken(&$1);
+                                                                    removeToken(&$3);
+                                                                    removeToken(&$5);
+                                                                }
           ;
 
 closedIterationStmt
-          : WHILE simpleExp DO closedStmt                       { $$ = createStmtNode(WhileK, "", $1->line, $2, $4, NULL); }
+          : WHILE simpleExp DO closedStmt                       { 
+                                                                    $$ = createStmtNode(WhileK, "", $1->line, $2, $4, NULL); 
+                                                                    removeToken(&$1);
+                                                                    removeToken(&$3);
+                                                                }
           | FOR ID ASGN iterationRange DO closedStmt            {
                                                                     AST_Node* n = createNodeFromToken($2, -1);
                                                                     n->nodeKind = DeclK;
@@ -301,24 +333,43 @@ closedIterationStmt
                                                                     n->expType = Integer;
                                                                     n->isInitialized = true;
                                                                     $$ = createStmtNode(ForK, "", $1->line, n, $4, $6);
+                                                                    removeToken(&$1);
+                                                                    removeToken(&$2);
+                                                                    removeToken(&$3);
+                                                                    removeToken(&$5);
                                                                 }
           ;
 
 openIterationStmt
-          : WHILE simpleExp DO openStmt                         { $$ = createStmtNode(WhileK, "", $1->line, $2, $4, NULL); }
+          : WHILE simpleExp DO openStmt                         { 
+                                                                    $$ = createStmtNode(WhileK, "", $1->line, $2, $4, NULL); 
+                                                                    removeToken(&$1);
+                                                                    removeToken(&$3);
+                                                                }
           | FOR ID ASGN iterationRange DO openStmt              {
                                                                     AST_Node* n = createNodeFromToken($2, -1);
                                                                     n->nodeKind = DeclK;
                                                                     n->subkind.decl = VarK;
                                                                     n->expType = Integer;
                                                                     n->isInitialized = true;
-                                                                      $$ = createStmtNode(ForK, "", $1->line, n, $4, $6);
+                                                                    $$ = createStmtNode(ForK, "", $1->line, n, $4, $6);
+                                                                    removeToken(&$1);
+                                                                    removeToken(&$2);
+                                                                    removeToken(&$3);
+                                                                    removeToken(&$5);
                                                                 }
           ;
 
 iterationRange
-          : simpleExp TO simpleExp                      { $$ = createStmtNode(RangeK, "", $2->line, $1, $3, NULL); }
-          | simpleExp TO simpleExp BY simpleExp         { $$ = createStmtNode(RangeK, "", $2->line, $1, $3, $5); }
+          : simpleExp TO simpleExp                      { 
+                                                            $$ = createStmtNode(RangeK, "", $2->line, $1, $3, NULL);
+                                                            removeToken(&$2);
+                                                        }
+          | simpleExp TO simpleExp BY simpleExp         { 
+                                                            $$ = createStmtNode(RangeK, "", $2->line, $1, $3, $5); 
+                                                            removeToken(&$2);
+                                                            removeToken(&$4);
+                                                        }
           ;
 
 returnStmt
@@ -326,15 +377,20 @@ returnStmt
                                                             $$ = createStmtNode(ReturnK, "", $1->line, NULL, NULL, NULL);
                                                             $$->expType = Integer; // the type associated with the default return value
                                                             $$->attrib.value = 0; // the value returned by non-specific return statements
+                                                            removeToken(&$1);
                                                         }
           | RETURN expression ';'                       {
                                                             $$ = createStmtNode(ReturnK, "", $1->line, $2, NULL, NULL);
                                                             $$->expType = UndefinedType;
+                                                            removeToken(&$1);
                                                         }
           ;
 
 breakStmt
-          : BREAK ';'                                   { $$ = createStmtNode(BreakK, "", $1->line, NULL, NULL, NULL); }
+          : BREAK ';'                                   { 
+                                                            $$ = createStmtNode(BreakK, "", $1->line, NULL, NULL, NULL); 
+                                                            removeToken(&$1);
+                                                        }
           ;
 
 //-------------------- Expressions --------------------
@@ -343,34 +399,60 @@ expression
           | mutable INC                                 { 
                                                             $$ = createNodeFromToken($2, 3);
                                                             $$->child[0] = $1;
+                                                            removeToken(&$2);
                                                         }
           | mutable DEC                                 {
                                                             $$ = createNodeFromToken($2, 3);
-                                                            $$->child[0] = $1;                                                        
+                                                            $$->child[0] = $1;  
+                                                            removeToken(&$2);                                                      
                                                         }
           | simpleExp                                   { $$ = $1; }
           ;
 
 assignop
-          : ASGN                                        { $$ = createNodeFromToken($1, 3); }
-          | ADDASS                                      { $$ = createNodeFromToken($1, 3); }
-          | SUBASS                                      { $$ = createNodeFromToken($1, 3); }
-          | MULASS                                      { $$ = createNodeFromToken($1, 3); }
-          | DIVASS                                      { $$ = createNodeFromToken($1, 3); }
+          : ASGN                                        { 
+                                                            $$ = createNodeFromToken($1, 3); 
+                                                            removeToken(&$1);
+                                                        }
+          | ADDASS                                      { 
+                                                            $$ = createNodeFromToken($1, 3); 
+                                                            removeToken(&$1);
+                                                        }
+          | SUBASS                                      { 
+                                                            $$ = createNodeFromToken($1, 3); 
+                                                            removeToken(&$1);
+                                                        }
+          | MULASS                                      { 
+                                                            $$ = createNodeFromToken($1, 3); 
+                                                            removeToken(&$1);
+                                                        }
+          | DIVASS                                      { 
+                                                            $$ = createNodeFromToken($1, 3); 
+                                                            removeToken(&$1);
+                                                        }
           ;
 
 simpleExp
-          : simpleExp OR andExp                         { $$ = createOpNode($2->tokenString, $2->line, $1, $3, NULL); }
+          : simpleExp OR andExp                         { 
+                                                            $$ = createOpNode($2->tokenString, $2->line, $1, $3, NULL); 
+                                                            removeToken(&$2);
+                                                        }
           | andExp                                      { $$ = $1; }
           ;
 
 andExp
-          : andExp AND unaryRelExp                      { $$ = createOpNode($2->tokenString, $2->line, $1, $3, NULL); }
+          : andExp AND unaryRelExp                      { 
+                                                            $$ = createOpNode($2->tokenString, $2->line, $1, $3, NULL); 
+                                                            removeToken(&$2);
+                                                        }
           | unaryRelExp                                 { $$ = $1; }
           ;
 
 unaryRelExp
-          : NOT unaryRelExp                             { $$ = createOpNode($1->tokenString, $1->line, $2, NULL, NULL); }
+          : NOT unaryRelExp                             { 
+                                                            $$ = createOpNode($1->tokenString, $1->line, $2, NULL, NULL); 
+                                                            removeToken(&$1);
+                                                        }
           | relExp                                      { $$ = $1; }
           ;
 
@@ -389,24 +471,24 @@ relop
           ;
 
 sumExp
-          : sumExp sumop mulExp                 { $$ = createOpNode($2->attrib.name, $2->lineNum, $1, $3, NULL); }
+          : sumExp sumop mulExp                 { $$ = createOpNode($2->printName, $2->lineNum, $1, $3, NULL); }
           | mulExp                              { $$ = $1; }
           ;
 
 sumop
-          : ADD                                 { $$ = createNodeFromToken($1, 4); }
-          | SUB                                 { $$ = createNodeFromToken($1, 4); }
+          : ADD                                 { $$ = createNodeFromToken($1, 4); removeToken(&$1); }
+          | SUB                                 { $$ = createNodeFromToken($1, 4); removeToken(&$1); }
           ;
 
 mulExp
-          : mulExp mulop unaryExp               { $$ = createOpNode($2->attrib.name, $2->lineNum, $1, $3, NULL); }
+          : mulExp mulop unaryExp               { $$ = createOpNode($2->printName, $2->lineNum, $1, $3, NULL); }
           | unaryExp                            { $$ = $1; }
           ;
 
 mulop
-          : MUL                                 { $$ = createNodeFromToken($1, 4); }
-          | DIV                                 { $$ = createNodeFromToken($1, 4); }
-          | MOD                                 { $$ = createNodeFromToken($1, 4); }
+          : MUL                                 { $$ = createNodeFromToken($1, 4); removeToken(&$1); }
+          | DIV                                 { $$ = createNodeFromToken($1, 4); removeToken(&$1); }
+          | MOD                                 { $$ = createNodeFromToken($1, 4); removeToken(&$1); }
           ;
 
 unaryExp
@@ -415,9 +497,9 @@ unaryExp
           ;
 
 unaryop
-          : SUB                                 { $$ = createOpNode("chsign", $1->line, NULL, NULL, NULL); }
-          | MUL                                 { $$ = createOpNode("sizeof", $1->line, NULL, NULL, NULL); }
-          | RAND                                { $$ = createOpNode($1->tokenString, $1->line, NULL, NULL, NULL); }
+          : SUB                                 { $$ = createOpNode("chsign", $1->line, NULL, NULL, NULL); removeToken(&$1); }
+          | MUL                                 { $$ = createOpNode("sizeof", $1->line, NULL, NULL, NULL); removeToken(&$1); }
+          | RAND                                { $$ = createOpNode($1->tokenString, $1->line, NULL, NULL, NULL); removeToken(&$1); }
           ;
 
 factor
@@ -426,8 +508,11 @@ factor
           ;
 
 mutable
-          : ID                                  { $$ = createNodeFromToken($1, 5); }
-          | ID '[' expression ']'               { $$ = createOpNode("[", $1->line, createNodeFromToken($1, 5), $3, NULL); }
+          : ID                                  { $$ = createNodeFromToken($1, 5); removeToken(&$1); }
+          | ID '[' expression ']'               { 
+                                                    $$ = createOpNode("[", $1->line, createNodeFromToken($1, 5), $3, NULL); 
+                                                    removeToken(&$1);
+                                                }
           ;
 
 immutable
@@ -440,10 +525,11 @@ call
           : ID '(' args ')'                     {
                                                     $$ = createNode(ExpK);
                                                     $$->subkind.exp = CallK;
-                                                    $$->attrib.name = strdup($1->tokenString);
+                                                    $$->printName = strdup($1->tokenString);
                                                     $$->lineNum = $1->line;
                                                     $$->num_params = countSiblings($3);   // save number of params
                                                     if($3 != NULL) $$->child[0] = $3;
+                                                    removeToken(&$1);
                                                 }     
           ;
 
@@ -470,20 +556,24 @@ constant
           : NUMCONST                            {
                                                     $$ = createNodeFromToken($1, 6);
                                                     $$->expType = Integer;
+                                                    removeToken(&$1);
                                                 }
           | CHARCONST                           {
                                                     $$ = createNodeFromToken($1, 6);
                                                     $$->expType = Char;
+                                                    removeToken(&$1);
                                                 }
           | STRINGCONST                         {
                                                     $$ = createNodeFromToken($1, 6);
                                                     $$->expType = Char;
                                                     $$->varKind = Global;
                                                     $$->isArray = true;
+                                                    removeToken(&$1);
                                                 }
           | BOOLCONST                           {   
                                                     $$ = createNodeFromToken($1, 6);
                                                     $$->expType = Boolean;
+                                                    removeToken(&$1);
                                                 }
           ;
 
