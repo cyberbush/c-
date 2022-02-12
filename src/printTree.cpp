@@ -79,7 +79,7 @@ void printTerm(AST_Node* n)
     switch(n->subkind.term)
     {
         case IDD:
-            printf("Id: %s", n->attrib.name);
+            printf("Id: %s", n->printName);
             break;
 
         default:
@@ -93,16 +93,16 @@ void printDecl(AST_Node* n)
     switch(n->subkind.decl)
     {
         case VarK:
-            if(n->isArray) printf("Var: %s of array of type %s", n->attrib.name, ExpTypeToStr(n->expType));
-            else if(n->isStatic) printf("Var: %s of static type %s", n->attrib.name, ExpTypeToStr(n->expType));
-            else printf("Var: %s of type %s", n->attrib.name, ExpTypeToStr(n->expType));
+            if(n->isArray) printf("Var: %s of array of type %s", n->printName, ExpTypeToStr(n->expType));
+            else if(n->isStatic) printf("Var: %s of static type %s", n->printName, ExpTypeToStr(n->expType));
+            else printf("Var: %s of type %s", n->printName, ExpTypeToStr(n->expType));
             break;        
         case FuncK:
-            printf("Func: %s returns type %s", n->attrib.name, ExpTypeToStr(n->expType));
+            printf("Func: %s returns type %s", n->printName, ExpTypeToStr(n->expType));
             break;
         case ParamK:
-            if(n->isArray) {printf("Parm: %s of array of type %s", n->attrib.name, ExpTypeToStr(n->expType));}
-            else {printf("Parm: %s of type %s", n->attrib.name, ExpTypeToStr(n->expType));}
+            if(n->isArray) {printf("Parm: %s of array of type %s", n->printName, ExpTypeToStr(n->expType));}
+            else {printf("Parm: %s of type %s", n->printName, ExpTypeToStr(n->expType));}
             break;
         default:
             printf("Error: unknown subtype of DECL\n");
@@ -145,19 +145,19 @@ void printExp(AST_Node* n)
     switch(n->subkind.exp)
     {
         case ConstantK:
-            printf("Const %s", n->attrib.name);
+            printf("Const %s", n->printName);
             break;
         case IdK:
-            printf("Id: %s", n->attrib.name);
+            printf("Id: %s", n->printName);
             break;
         case AssignK:
-            printf("Assign: %s", n->attrib.name);
+            printf("Assign: %s", n->printName);
             break;
         case OpK:
-            printf("Op: %s", n->attrib.name);
+            printf("Op: %s", n->printName);
             break;
         case CallK:
-            printf("Call: %s", n->attrib.name);
+            printf("Call: %s", n->printName);
             break;
         case InitK:
             break;

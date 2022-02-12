@@ -55,8 +55,9 @@ public:
         int value; // used when an integer constant or boolean
         unsigned char cvalue; // used when a character
         const char* str; // used when a string constant
-        const char* name; // used when IdK
     } attrib;
+
+    const char* printName; // used to store name for printing
 
     ExpType expType; // used when ExpK for type checking
     VarKind varKind = None; // type of variable
