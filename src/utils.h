@@ -5,6 +5,9 @@
 // Function to relinquish memory from token
 static void removeToken(TokenData** tok);
 
+// Function to print usage message
+static void printUsage();
+
 // Function to count number of arguments for a AST Tree node
 int countSiblings(AST_Node* t);
 // Returns the sibling to the far right

@@ -14,6 +14,17 @@ void removeToken(TokenData** tok)
     return;
 }
 
+void printUsage()
+{
+    printf("usage: -c [options] [sourcefile]\n");
+    printf("options:\n");
+    printf("-d          - turn on parser debugging\n");
+    printf("-D          - turn on symbol table debugging\n");
+    printf("-h          - print this usage message\n");
+    printf("-p          - print the abstract syntax tree\n");
+    printf("-P          - print the abstract syntax tree plus type information\n");
+}
+
 int countSiblings(AST_Node* t)
 {
     int count = 0;
