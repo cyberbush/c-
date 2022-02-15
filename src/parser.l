@@ -8,6 +8,7 @@ using namespace std;
 
 int lineNum = 1;
 int errNum = 0;
+int warnNum = 0;
 
 // Retrieves the c string from full string
 // Handles escaping and keeps track of length
@@ -58,6 +59,7 @@ int cValueRetrieve(char *raw) {
 		}
 	} else if(len > 3) {
 		printf("WARNING(%d): character is %d characters long and not a single character: '%s'.  The first char will be used.\n", lineNum, len - 2, raw);
+		warnNum++;
 		if(raw[1] == '\\') {
 			switch(raw[2]) {
 			case '0':

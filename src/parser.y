@@ -1,23 +1,8 @@
 %{
-#include <stdio.h>
-#include <iostream>
-#include <stdlib.h>
-#include <string.h>
-#include "scanType.h"       // TokenData Type
-#include "AST_Node.h"       // AST Tree Node Structure
-#include "utils.cpp"        // Utility functions
-#include "treeUtil.cpp"     // Tree utility functions
-#include "printTree.cpp"    // Printing AST tree
+#include "main.cpp"
 using namespace std;
 
-// Declare stuff from Flex that Bison needs to know about:
-extern int yylex();
-extern int yyparse();
-extern FILE *yyin;          // input source file
-extern int errNum;          // number of errors
-extern int yydebug;         // yydebug flag
-
-static AST_Node* root;      // root of the tree
+AST_Node* root;      // root of the tree
 
 extern void yyerror(const char *s);
 %}
@@ -578,51 +563,6 @@ constant
           ;
 
 %%
-
-// C code to openfile
-int main(int argc, char *argv[])
-{
-    bool printTreeFlag = false;
-    char option = '0';
-    
-    // check for options
-    for(int i = 1; i < argc-1; i++) {
-        int str_size = strlen(argv[i]);
-        if(argv[i][0] == '-' && str_size == 2) {
-            option = argv[i][1];
-        }
-    }
-
-    switch(option) {
-        case 'p': // print tree
-            printTreeFlag = true;
-            break;
-        case 'd': // enable debugging
-            yydebug = 1;
-            break;
-        case '0': // no option
-            break;
-        default:  // error
-            printf("Error inputing option: %c\n", option);
-    }
-
-    if (argc > 1) {
-        if ((yyin = fopen(argv[argc-1], "r"))) {
-            // file open successful
-        }
-        else {
-            // failed to open file
-            printf("ERROR: failed to open \'%s\'\n", argv[1]);
-            exit(1);
-        }
-    }
-    yyparse();
-    
-    // print tree if true
-    if(printTreeFlag) {
-        printAST(root, -1, 0);
-    }
-}
 
 // needs to be updated?
 void yyerror(const char *s) {
