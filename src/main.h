@@ -11,5 +11,6 @@
 #include "utils.cpp"        // Utility functions
 #include "treeUtil.cpp"     // Tree utility functions
 #include "printTree.cpp"    // Printing AST tree
+#include "ourgetopt.cpp"    // Options handling
+#include "semantic.cpp"     // Semantic analysis
 #include "symbolTable.h"    // Symbol table
-#include "ourgetopt.h"
