@@ -1,6 +1,12 @@
 //------------------ treeUtil.h ------------------
 #ifndef _TREEUTIL_H_
 #define _TREEUTIL_H_
+
+#include "scanType.h"
+#include "AST_Node.h"
+#include "utils.h"
+#include "string.h"
+
 /*
     Utility functions for managing the tree
 */

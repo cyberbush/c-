@@ -1,8 +1,6 @@
 //------------------ treeUtil.cpp ------------------
 // Creates a new AST_Node node and set general type
-#include "AST_Node.h"
-#include "scanType.h"
-#include "utils.h"
+
 #include "treeUtil.h"
 
 AST_Node* createNode(NodeKind nodeK)
