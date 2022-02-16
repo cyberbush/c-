@@ -1,9 +1,8 @@
 //------------------ printTree.cpp ------------------
-#include "printTree.h"
-#include "AST_Node.h"
-#include "utils.h"
 
-void printAST(AST_Node* root, int childNum, int level)
+#include "printTree.h"
+
+void printAST(AST_Node* root, int childNum, int level, bool annotated)
 {
     if(root == NULL) return;
     // Print the indention level
@@ -17,17 +16,17 @@ void printAST(AST_Node* root, int childNum, int level)
     for(int i = 0; i < 3; i++)  // Print everything below the child
     {
       if(root->child[i] != NULL){
-          printAST(root->child[i], i, level+1);
+          printAST(root->child[i], i, level+1, annotated);
       }
     }
 
     if(root->sibling != NULL)
     {
-        printSiblingAST(root->sibling, 1, level); // Print the sibling tree
+        printSiblingAST(root->sibling, 1, level, annotated); // Print the sibling tree
     }
 }
 
-void printSiblingAST(AST_Node* root, int siblingOrder, int level)
+void printSiblingAST(AST_Node* root, int siblingOrder, int level, bool annotated)
 {
     // Print the indention level
     for(int i = 0; i < level; i++)
@@ -41,13 +40,13 @@ void printSiblingAST(AST_Node* root, int siblingOrder, int level)
     for(int i = 0; i < 3; i++)  // Print everything below the child
     {
       if(root->child[i] != NULL){
-        printAST(root->child[i], i, level+1);
+        printAST(root->child[i], i, level+1, annotated);
       }
     }
 
     if(root->sibling != NULL)
     {
-        printSiblingAST(root->sibling, ++siblingOrder, level); // Print the sibling tree
+        printSiblingAST(root->sibling, ++siblingOrder, level, annotated); // Print the sibling tree
     }
 }
 

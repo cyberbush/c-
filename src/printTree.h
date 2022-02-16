@@ -2,12 +2,15 @@
 #ifndef _PRINTTREE_H_
 #define _PRINTTREE_H_
 
+#include "AST_Node.h"
+#include "utils.h"
+
 // Functions for printing the AST
 
 // Prints all nodes in the AST in prefix order
-static void printAST(AST_Node* root, int childNum, int level);
+static void printAST(AST_Node* root, int childNum, int level, bool annotated);
 // Prints all nodes in the sibling AST 
-static void printSiblingAST(AST_Node* root, int siblingOrder, int level);
+static void printSiblingAST(AST_Node* root, int siblingOrder, int level, bool annotated);
 // Used for printing a node, can be a TermK, DeclK, StmtK, or ExpK
 static void printNode(AST_Node* n);
 // Used for printing terminals
