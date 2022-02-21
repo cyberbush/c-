@@ -57,29 +57,25 @@ int main( int argc, char *argv[] )
     if (errNum == 0)
     {
         // check -p option
-        if (pflag){
-            // print only info for declarations
-            printAST(root, -1, 0, false);
-        }
-        SymbolTable symbolTable; // instantiate the symbol table
-        // check -D option
-        if (Dflag){
-            symbolTable.debug(true); // sets debug flag
-        }
+        if (pflag) printAST(root, -1, 0, false);
+
         // perform semantic analysis (may find errors when doing this)
-        // semanticAnalysis(syntaxTree, symbolTable);
-        
+        SemanticAnalyzer semanticAnalyzer;
+        // check -D option
+        if(Dflag) semanticAnalyzer.analyzeTree(root, true);
+        else semanticAnalyzer.analyzeTree(root, false);
         // check -P option
-        // if (Pflag)
-            // print type info for all types
-            //printAST(root, -1, 0, true);
+        if (Pflag && errNum == 0)
+            //print type info for all types
+            printAST(root, -1, 0, true);
         
         // code generation will eventually go here...
     }
 
     // report number of errors and warnings
-    //printf("Number of errors: %d\n", errNum);
-    //printf("Number of warnings: %d\n", warnNum);
+ 
+    printf("Number of warnings: %d\n", warnNum);
+    printf("Number of errors: %d\n", errNum);
 
     return 0;
 }                                                               

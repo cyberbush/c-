@@ -8,8 +8,8 @@
 #include <string.h>
 #include "scanType.h"       // TokenData Type
 #include "AST_Node.h"       // AST Tree Node Structure
-#include "utils.cpp"        // Utility functions
 #include "treeUtil.cpp"     // Tree utility functions
+#include "utils.cpp"        // Utility functions
 #include "printTree.cpp"    // Printing AST tree
 #include "ourgetopt.cpp"    // Options handling
 #include "semantic.cpp"     // Semantic analysis
