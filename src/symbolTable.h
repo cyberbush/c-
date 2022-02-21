@@ -67,6 +67,8 @@ public:
                                                      // returns false if already defined
     bool insertGlobal(std::string sym, void *ptr);   // inserts a new ptr associated with symbol sym 
                                                      // returns false if already defined
+    std::map<std::string, void*> getSymbols(void);   // get all symbols in the local scope
+    std::string getScopeName(void);                  // get the name of the current scope
     void applyToAll(void (*action)(std::string , void *));        // apply func to all symbol/data pairs in local scope
     void applyToAllGlobal(void (*action)(std::string , void *));  // apply func to all symbol/data pairs in global scope
 };

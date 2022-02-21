@@ -77,6 +77,7 @@ public:
                                                // returns false if already defined
     void *lookup(std::string sym);             // returns the ptr associated with sym
                                                // returns NULL if symbol not found
+    std::map<std::string, void*> getSymbols(); // get map of symbols in scope                          
 };
 
 
@@ -148,6 +149,11 @@ void *SymbolTable::Scope::lookup(std::string sym) {
         if (debugFlg) printf("DEBUG(Scope): lookup in \"%s\" for the symbol \"%s\" and did NOT find it.\n", name.c_str(), sym.c_str());
         return NULL;
     }
+}
+
+// return symbols in most recent scope
+std::map<std::string, void*> SymbolTable::Scope::getSymbols(){
+    return symbols;
 }
 
 bool SymbolTable::Scope::debugFlg;
@@ -281,6 +287,16 @@ bool SymbolTable::insertGlobal(std::string sym, void *ptr)
     return stack[0]->insert(sym, ptr);
 }
 
+
+// return map of all symbols in the current scope
+std::map<std::string, void*> SymbolTable::getSymbols(){
+    return (stack.back())->getSymbols();
+}
+
+// return the name of the last scope visited
+std::string SymbolTable::getScopeName(){
+    return stack.back()->scopeName();
+}
 
 // Apply function to each simple in the local scope.   The function gets both the
 // string and the associated pointer.
