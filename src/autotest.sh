@@ -1,12 +1,15 @@
 #!/bin/bash
 # Automated test for compiler
 SRC=c-
-TST_BANK="testDataA2"
+TST_BANK="testDataA3"
 
-# save .c- files
-cd testDataA2
-files=(*.c-)
-cd ..
+# save all .c- files
+# cd testDataA3
+# files=(*.c-)  #*.c-
+# cd ..
+
+# test specific files
+files=("allgood.c-")
 
 #update build
 make clean
@@ -16,6 +19,6 @@ make
 for filename in ${files[@]}; 
 do
 	echo $filename
-	./$SRC -p $TST_BANK/$filename > test.out
+	./$SRC -P $TST_BANK/$filename > test.out
 	diff test.out $TST_BANK/${filename::-3}.out
 done
