@@ -100,6 +100,7 @@ static int buildToken(int tokenClass, char *tokenString) {
 		break;
 	case STRINGCONST:
 		yylval.tokenData->sValue = sValueRetrieve(tokenString);
+		yylval.tokenData->length = strlen(tokenString)-2;
 		break;
 	case CHARCONST:
 		int c = cValueRetrieve(tokenString);
@@ -139,6 +140,7 @@ static int buildToken(int tokenClass, char *tokenString) {
 "do"								{ return buildToken(DO, yytext); }
 "true"|"false"						{ return buildToken(BOOLCONST, yytext); }
 "<-"								{ return buildToken(ASGN, yytext); }
+"="									{ return buildToken(EQ, yytext); }
 "+="								{ return buildToken(ADDASS, yytext); }
 "-="								{ return buildToken(SUBASS, yytext); }
 "/="								{ return buildToken(DIVASS, yytext); }
@@ -157,7 +159,6 @@ static int buildToken(int tokenClass, char *tokenString) {
 \/									{ return buildToken(DIV, yytext); }
 %									{ return buildToken(MOD, yytext); }
 \?									{ return buildToken(RAND, yytext); }
-=									{ return buildToken(ASS, yytext); }
 [;,:\[\]\(\){}]            			{ return yytext[0]; }
 [a-zA-Z][a-zA-Z0-9]*				{ return buildToken(ID, yytext); }
 [0-9]+								{ return buildToken(NUMCONST, yytext); }

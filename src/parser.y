@@ -16,8 +16,8 @@ extern void yyerror(const char *s);
 // define token types
 %token <tokenData> BOOLCONST NUMCONST CHARCONST STRINGCONST ID
 %token <tokenData> IF WHILE FOR STATIC INT BOOL CHAR ELSE RETURN BREAK
-%token <tokenData> EQ ADDASS SUBASS DIVASS MULASS LEQ GEQ NEQ DEC INC
-%token <tokenData> ADD SUB LT GT MUL DIV MOD RAND ASS AND OR NOT 
+%token <tokenData> ADDASS SUBASS DIVASS MULASS LEQ GEQ NEQ DEC INC
+%token <tokenData> ADD SUB LT GT MUL DIV MOD RAND EQ AND OR NOT 
 %token <tokenData> BEG END THEN ASGN TO BY DO
 
 %start program
@@ -116,6 +116,7 @@ varDecInit
                                                 if($3 != NULL){
                                                     $$->child[0] = $3;
                                                     $$->isInitialized = true;
+                                                    $$->hasInit = true;
                                                 }
                                             }
           ;
@@ -123,11 +124,13 @@ varDecInit
 varDecId
           : ID                              {
                                                 $$ = createDeclNode(VarK, UndefinedType, $1->tokenString, $1->line, NULL, NULL, NULL);
+                                                $$->size = 1;
                                                 removeToken(&$1);
                                             }
           | ID '[' NUMCONST ']'             {
                                                 $$ = createDeclNode(VarK, UndefinedType, $1->tokenString, $1->line, NULL, NULL, NULL);
                                                 $$->isArray = true;
+                                                $$->size = $3->nValue+1;
                                                 removeToken(&$1);
                                                 removeToken(&$3);
                                             }
@@ -152,12 +155,12 @@ typeSpec
 funDec
           : typeSpec ID '(' params ')' compoundStmt         {
                                                                 $$ = createDeclNode(FuncK, $1->expType, $2->tokenString, $2->line, $4, $6, NULL);
-                                                                $6->printName = $2->tokenString; // save name for scope 
+                                                                $6->name = $2->tokenString; // save name for scope 
                                                                 removeToken(&$2);
                                                             }
           |          ID '(' params ')' compoundStmt         {
                                                                 $$ = createDeclNode(FuncK, Void, $1->tokenString, $1->line, $3, $5, NULL);
-                                                                $5->printName = $1->tokenString;  // save name for scope     
+                                                                $5->name = $1->tokenString;  // save name for scope     
                                                                 removeToken(&$1);                                            
                                                             }
           ;
@@ -174,6 +177,7 @@ paramList
                                                     AST_Node* t = $1;
                                                     while(t->sibling != NULL) {
                                                         t = t->sibling;
+                                                        if(t->isArray) t->size = 1;
                                                     }
                                                     t->sibling = $3;
                                                 }
@@ -246,7 +250,7 @@ expressionStmt
 compoundStmt
           : BEG localDecs stmtList END      {
                                                 $$ = createStmtNode(CompoundK, "", $1->line, $2, $3, NULL);
-                                                $$->printName = strdup("comp scope");
+                                                $$->name = strdup("comp scope");
                                                 removeToken(&$1);
                                                 removeToken(&$4);
                                             }
@@ -337,6 +341,7 @@ openIterationStmt
                                                                     n->subkind.decl = VarK;
                                                                     n->expType = Integer;
                                                                     n->isInitialized = true;
+                                                                    n->size = 1;
                                                                     $$ = createStmtNode(ForK, "", $1->line, n, $4, $6);
                                                                     removeToken(&$1);
                                                                     removeToken(&$2);
@@ -451,12 +456,12 @@ relop
           | GT                                  { $$ = $1; }
           | LEQ                                 { $$ = $1; }
           | GEQ                                 { $$ = $1; }
-          | ASS                                 { $$ = $1; }
+          | EQ                                  { $$ = $1; }
           | NEQ                                 { $$ = $1; }
           ;
 
 sumExp
-          : sumExp sumop mulExp                 { $$ = createOpNode($2->printName, $2->lineNum, $1, $3, NULL); }
+          : sumExp sumop mulExp                 { $$ = createOpNode($2->name, $2->lineNum, $1, $3, NULL); }
           | mulExp                              { $$ = $1; }
           ;
 
@@ -466,7 +471,7 @@ sumop
           ;
 
 mulExp
-          : mulExp mulop unaryExp               { $$ = createOpNode($2->printName, $2->lineNum, $1, $3, NULL); }
+          : mulExp mulop unaryExp               { $$ = createOpNode($2->name, $2->lineNum, $1, $3, NULL); }
           | unaryExp                            { $$ = $1; }
           ;
 
@@ -510,7 +515,7 @@ call
           : ID '(' args ')'                     {
                                                     $$ = createNode(ExpK);
                                                     $$->subkind.exp = CallK;
-                                                    $$->printName = strdup($1->tokenString);
+                                                    $$->name = strdup($1->tokenString);
                                                     $$->lineNum = $1->line;
                                                     $$->num_params = countSiblings($3);   // save number of params
                                                     if($3 != NULL) $$->child[0] = $3;
@@ -553,6 +558,7 @@ constant
                                                     $$->expType = Char;
                                                     $$->varKind = Global;
                                                     $$->isArray = true;
+                                                    $$->size = $1->length + 1;
                                                     removeToken(&$1);
                                                 }
           | BOOLCONST                           {   
