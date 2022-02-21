@@ -18,4 +18,7 @@ static AST_Node* createOpNode(const char*, int, AST_Node*, AST_Node*, AST_Node*)
 static AST_Node* createStmtNode(StmtKind, const char*, int, AST_Node*, AST_Node*, AST_Node*);
 static AST_Node* createDeclNode(DeclKind, ExpType, const char*, int, AST_Node*, AST_Node*, AST_Node*);
 
+// Copy data from one to another
+static void copyNodeData(AST_Node* n1, AST_Node* n2);
+
 #endif

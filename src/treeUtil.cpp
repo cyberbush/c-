@@ -54,7 +54,7 @@ static AST_Node* createNodeFromToken(TokenData* tokenData, int type)
         default:
             printf("Error creating node from token, type: %d\n", type);
     }
-    newNode->printName = strdup(tokenData->tokenString);
+    newNode->name = strdup(tokenData->tokenString);
     newNode->lineNum = tokenData->line;
 
     return newNode;
@@ -77,7 +77,7 @@ AST_Node* createOpNode(const char* s, int linenum, AST_Node* child0, AST_Node* c
       newNode->expType = Equal;
 
     // printf("Creating Op node: %s: on line number = %d\n", s, linenum);
-    newNode->printName = s;
+    newNode->name = strdup(s);
 
     return newNode;
 }
@@ -93,7 +93,7 @@ AST_Node* createStmtNode(StmtKind stmtKind, const char* s, int linenum, AST_Node
     newNode->child[1] = child1;
     newNode->child[2] = child2;
     newNode->lineNum = linenum;
-    newNode->printName = s;
+    newNode->name = strdup(s);
 
     //printf("Creating Stmt node: %s: on line number = %d\n", s, linenum);
 
@@ -112,10 +112,28 @@ AST_Node* createDeclNode(DeclKind declKind, ExpType type, const char* s, int lin
     newNode->child[1] = child1;
     newNode->child[2] = child2;
     newNode->lineNum = linenum;
-    newNode->printName = strdup(s);
+    newNode->name = strdup(s);
     newNode->expType = type;
 
     // printf("Creating DeclK Node: %s: on line number = %d\n", s, linenum);
 
     return newNode;
+}
+
+static void copyNodeData(AST_Node* n1, AST_Node* n2)
+{
+    if(n1 == NULL || n2 == NULL){
+        printf("Error copying data from node. (NULL)\n");
+        return;
+    }
+
+    n2->isStatic = n1->isStatic;
+    n2->isArray = n1->isArray;
+    n2->isInitialized = n1->isInitialized;
+    n2->isDeclUsed = n1->isDeclUsed;
+    n2->hasReturn = n1->hasReturn;
+    n2->expType = n1->expType;
+    n2->varKind = n1->varKind;
+    n2->size = n1->size;
+    n2->stackLocation = n1->stackLocation;
 }
