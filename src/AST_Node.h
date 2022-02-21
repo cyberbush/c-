@@ -4,7 +4,8 @@
 
 #include <stdio.h>
 #include <string>
-
+#include <map>
+using namespace std;
 
 // The max children that a tree node can have
 #define MAX_CHILDREN 3
@@ -36,38 +37,49 @@ public:
     *
     */
     // Related nodes
-    AST_Node *child[MAX_CHILDREN]; // Node can have a max of 3 children but
-    AST_Node *sibling; // Only 1 sibling
+    AST_Node *child[MAX_CHILDREN];  // Node can have a max of 3 children but
+    AST_Node *sibling;              // Only 1 sibling
+    
+    AST_Node *firstDecl =NULL;      // keeps track of first declaration
 
     //------------------- Variables -------------------
-    NodeKind nodeKind; // Type of this node 
-    union subkind// subtype of type
+    NodeKind nodeKind;              // Type of this node 
+    union subkind                   // subtype of type
     {
-        DeclKind decl; // used when DeclK
-        StmtKind stmt; // used when StmtK
-        ExpKind exp; // used when ExpK
-        TermKind term; // used for type of terminal
+        DeclKind decl;              // used when DeclK
+        StmtKind stmt;              // used when StmtK
+        ExpKind exp;                // used when ExpK
+        TermKind term;              // used for type of terminal
     } subkind;
 
-    union attrib// attributes of this node
+    union attrib                    // attributes of this node
     {
-        OpKind op; // type of token (same as in bison)
-        int value; // used when an integer constant or boolean
-        unsigned char cvalue; // used when a character
-        const char* str; // used when a string constant
+        OpKind op;                  // type of token (same as in bison)
+        int value;                  // used when an integer constant or boolean
+        unsigned char cvalue;       // used when a character
+        const char* str;            // used when a string constant
     } attrib;
 
-    const char* printName; // used to store name for printing
+    char* name;                     // used to store the name of the node
 
-    ExpType expType; // used when ExpK for type checking
-    VarKind varKind = None; // type of variable
+    ExpType expType;                // used when ExpK for type checking
+    VarKind varKind = None;         // type of variable
 
-    int num_params =  0; // store the number of paramaters
-    int lineNum; // Line number associated with this node
+    int num_params =  0;            // store the number of paramaters
 
-    bool isArray; // is this an array
-    bool isStatic; // is staticly allocated?
-    bool isInitialized; // is it initialized?
+    map<int, pair<ExpType, bool>> params;
+
+    int lineNum;                    // Line number associated with this node
+
+    bool isInitialized = false;     // is it initialized?
+    bool isStatic = false;          // is staticly allocated?
+    bool isArray = false;           // is this an array
+    bool isDeclUsed = false;        // check if declaration has been used
+    bool hasReturn = false;         // check if function has a return
+    bool hasInit = true;            //
+
+    int size = 0;                   // value size in words
+    int stackLocation = 1;          //
 };
 
 #endif
