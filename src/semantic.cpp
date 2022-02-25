@@ -85,7 +85,9 @@ void SemanticAnalyzer::manageUsedVars(map<string, void*> symbols){
 void SemanticAnalyzer::checkMain(AST_Node *n)
 {
     if(strcmp(n->name, "main") == 0) {
-        isMain = true;
+        if((n->expType == Void || n->expType == Integer) && n->num_params == 0) {
+            isMain = true;
+        }
     }
 }
 
@@ -162,6 +164,10 @@ void SemanticAnalyzer::handleVar(AST_Node *n)
 // Set the function as global, make a new scope, and insert into symbol table 
 void SemanticAnalyzer::handleFunc(AST_Node *n)
 {
+    int paramCount = countParams(n); // returns number of paramaters
+    n->num_params = paramCount; // store in node
+    n->size = 2 + paramCount;   // set the size of the function
+
     checkMain(n); // check for main
 
     startFunction = n; // save reference to the start of the function
@@ -296,6 +302,8 @@ void SemanticAnalyzer::handleId(AST_Node *n)
             n->firstDecl = tmp;
         }
     }
+    // check if ID is initialized, add warning
+    if (tmp != NULL && !tmp->isInitialized && tmp->child[0] == NULL) { errors.insertMsg(createWarn(to_string(n->lineNum), string(n->name),0) ,n->lineNum, 1); }
 }
 
 // Check call
@@ -593,8 +601,8 @@ ExpType SemanticAnalyzer::findAssOpType(AST_Node* n, ExpKind expK){
 }
 
 // do type checking for binary expressions
-ExpType SemanticAnalyzer::findBinaryOp(AST_Node* n, std::string op){
-    std::map<std::string, std::pair<ExpType, bool>> typeMap{
+ExpType SemanticAnalyzer::findBinaryOp(AST_Node* n, string op){
+    map<string, pair<ExpType, bool>> typeMap{
         {"+", {Integer, false}},       // lhs and rhs must be integers
         {"-", {Integer, false}},
         {"*", {Integer, false}},
@@ -639,8 +647,8 @@ ExpType SemanticAnalyzer::findBinaryOp(AST_Node* n, std::string op){
         else compareBothNodeTypes(lhs, rhs, op, n->lineNum);
 
     }else if(outputT == Equal){
-        outputT = Boolean;
-        compareBothNodeTypes(lhs, rhs, op, n->lineNum);
+        if(op == "=") { outputT = Boolean; }
+        else { outputT = compareBothNodeTypes(lhs, rhs, op, n->lineNum); }
 
     }else if(outputT == UndefinedType){
         outputT = lhs->expType; // type of id
