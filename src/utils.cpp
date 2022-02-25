@@ -12,6 +12,20 @@ void removeToken(TokenData** tok)
     return;
 }
 
+int countParams(AST_Node *t)
+{
+    int countP = 0;
+    if(t->child[0] != NULL){
+        AST_Node* l = t->child[0];
+        while(l != NULL){
+            t->params[countP] = {l->expType, l->isArray};
+            countP++;
+            l = l->sibling;
+        }
+    }
+    return countP;
+}
+
 void printUsage()
 {
     printf("usage: -c [options] [sourcefile]\n");

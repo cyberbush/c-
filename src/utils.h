@@ -13,10 +13,12 @@ static void removeToken(TokenData** tok);
 // Function to print usage message
 static void printUsage();
 
+// Function to find the number of params for a function
+int countParams(AST_Node *t);
 // Function to count number of arguments for a AST Tree node
-int countSiblings(AST_Node* t);
+int countSiblings(AST_Node *t);
 // Returns the sibling to the far right
-AST_Node* getLastSibling(AST_Node* t);
+AST_Node* getLastSibling(AST_Node *t);
 // Takes an ExpType and returns the corresponding string
 const char* ExpTypeToStr(ExpType type);
 const char* VarKindToStr(VarKind vk);
