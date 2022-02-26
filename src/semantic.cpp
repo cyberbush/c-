@@ -528,11 +528,6 @@ void SemanticAnalyzer::handleRangeErrors(AST_Node* n){
         }
     }
 }
-//__________________________________________________________________________________________
-//__________________________________________________________________________________________
-//___________________________________STOPPED HERE___________________________________________
-//__________________________________________________________________________________________
-//__________________________________________________________________________________________
 
 // Handle any errors for expressions
 void SemanticAnalyzer::handleExpErrors(AST_Node* n){
@@ -647,8 +642,7 @@ ExpType SemanticAnalyzer::findBinaryOp(AST_Node* n, string op){
         else compareBothNodeTypes(lhs, rhs, op, n->lineNum);
 
     }else if(outputT == Equal){
-        if(op == "=") { outputT = Boolean; }
-        else { outputT = compareBothNodeTypes(lhs, rhs, op, n->lineNum); }
+        outputT = compareBothNodeTypes(lhs, rhs, op, n->lineNum);
 
     }else if(outputT == UndefinedType){
         outputT = lhs->expType; // type of id
@@ -728,7 +722,7 @@ ExpType SemanticAnalyzer::compareBothNodeTypes(AST_Node* lhs, AST_Node* rhs, str
     bool notVoid = (lhs->expType != Void && rhs->expType != Void);
     bool notUD = (lhs->expType != UndefinedType && rhs->expType != UndefinedType);
 
-    if(lhs->expType != rhs->expType && notUD && notVoid){ // add error: operands not same type
+    if(lhs->expType != rhs->expType && notUD){ // add error: operands not same type
         errors.insertMsg(createErr(to_string(line), op, string(ExpTypeToStr(lhs->expType)), string(ExpTypeToStr(rhs->expType)), 2), line, 0);
     }
 
