@@ -44,15 +44,16 @@ int main( int argc, char *argv[] )
         int file = args + 1;
         if ((yyin = fopen(argv[file], "r"))) {
             // file open successful
+            yyparse();
         }
         else {
             // failed to open file
-            printf("ERROR: failed to open \'%s\'\n", argv[file]);
-            exit(1);
+            printf("ERROR(ARGLIST): source file \"%s\" could not be opened.\n", argv[file]);
+            errNum++;
+            //exit(1);
         }
     }
 
-    yyparse();
     
     if (errNum == 0)
     {
