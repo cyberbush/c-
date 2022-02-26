@@ -111,7 +111,7 @@ void printDecl(AST_Node* n, bool PFlag)
             printf("Func: %s returns type %s", n->name, ExpTypeToStr(n->expType));
             break;
         case ParamK:
-            if(n->isArray) {printf("Parm: %s of array of type %s", n->name, ExpTypeToStr(n->expType));}
+            if(n->isArray) {printf("Parm: %s is array of type %s", n->name, ExpTypeToStr(n->expType));}
             else {printf("Parm: %s of type %s", n->name, ExpTypeToStr(n->expType));}
             break;
         default:
@@ -173,7 +173,7 @@ void printExp(AST_Node* n, bool PFlag)
             break;
         case OpK:
             printf("Op: %s", n->name);
-            if(PFlag) { printf(" of type %s", ExpTypeToStr(n->expType)); }
+            if(PFlag) { if(string(n->name) == "=") { printf(" of type bool"); } else { printf(" of type %s", ExpTypeToStr(n->expType)); }}
             break;
         case CallK:
             printf("Call: %s", n->name);
