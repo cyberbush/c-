@@ -116,6 +116,7 @@ varDecInit
                                                 if($3 != NULL){
                                                     $$->child[0] = $3;
                                                     $$->isInitialized = true;
+                                                    //$$->isDeclUsed = true;
                                                     $$->hasInit = true;
                                                 }
                                             }
