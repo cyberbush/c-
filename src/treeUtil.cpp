@@ -115,7 +115,7 @@ AST_Node* createDeclNode(DeclKind declKind, ExpType type, const char* s, int lin
     newNode->name = strdup(s);
     newNode->expType = type;
 
-    // printf("Creating DeclK Node: %s: on line number = %d\n", s, linenum);
+    //printf("Creating DeclK Node: %s: on line number = %d\n", s, linenum);
 
     return newNode;
 }
