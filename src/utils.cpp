@@ -78,6 +78,57 @@ AST_Node* getLastSibling(AST_Node* t)
     }
     return t;
 }
+
+const char* NodeKindToStr(NodeKind nk)
+{
+    switch(nk) {
+        case DeclK:
+            return "DeclK";
+        case ExpK:
+            return "ExpK";
+        case StmtK:
+            return "StmtK";
+        case TermK:
+            return "TermK";
+        default:
+            return "Error determining nodekind";
+    }
+}
+// OpK, ConstantK, IdK, AssignK, InitK, CallK
+const char* ExpKindToStr(ExpKind ek)
+{
+    switch(ek) {
+        case OpK:
+            return "OpK";
+        case ConstantK:
+            return "ConstantK";
+        case IdK:
+            return "IdK";
+        case AssignK:
+            return "AssignK";
+        case InitK:
+            return "InitK";
+        case CallK:
+            return "CallK";
+        default:
+            return "Error determining expkind";
+    }
+}
+
+const char* DecltoStr(DeclKind dk)
+{
+    switch(dk){
+        case VarK:
+            return "VarK";
+        case FuncK:
+            return "FuncK";
+        case ParamK:
+            return "ParamK";
+        default:
+            return "Error unknown type";
+    }
+}
+
 // print an expression type
 const char* ExpTypeToStr(ExpType type)
 {

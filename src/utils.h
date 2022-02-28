@@ -19,6 +19,10 @@ int countParams(AST_Node *t);
 int countSiblings(AST_Node *t);
 // Returns the sibling to the far right
 AST_Node* getLastSibling(AST_Node *t);
+
+const char* NodeKindToStr(NodeKind nk);
+const char* DecltoStr(DeclKind dk);
+const char* ExpKindToStr(ExpKind ek);
 // Takes an ExpType and returns the corresponding string
 const char* ExpTypeToStr(ExpType type);
 const char* VarKindToStr(VarKind vk);
