@@ -47,12 +47,12 @@ class SemanticAnalyzer {
         void manageScope(AST_Node *n);                              // handles the scope during recursion
         void checkMain(AST_Node *n);                                // checks to see if main function
         void manageUsedVars(map<string, void*> symbols);
-
         // deal with initializations
         void checkOpChildInit(AST_Node *lhs, AST_Node *rhs, string op);     // check initialization for operator children
         void checkVarSideInit(AST_Node *n);                                 // check if variables on side are initialized
         void checkVarInit(AST_Node *n);                                     // check each variable is initialized
         void initLeftVar(AST_Node *n);                                      //
+        void handleReturnInit(AST_Node *n);
 
         // functions used in second traversal
         void analyzeNodeErrors(AST_Node* n);

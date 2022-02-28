@@ -73,7 +73,7 @@ void SemanticAnalyzer::manageUsedVars(map<string, void*> symbols){
     for(map<string, void*>::iterator it = symbols.begin(); it != symbols.end(); ++it){
         AST_Node* tmp = (AST_Node*)it->second;
         if(!tmp->isDeclUsed){ // check if its been used
-            if(tmp->subkind.decl == VarK) { // check if its a variable
+            if(tmp->subkind.decl == VarK || tmp->subkind.decl == ParamK) { // check if its a variable
                 // add warn: var seems to not be used
                 errors.insertMsg(createWarn(to_string(tmp->lineNum), string(tmp->name),1) ,tmp->lineNum, 1);
             }
@@ -85,7 +85,7 @@ void SemanticAnalyzer::manageUsedVars(map<string, void*> symbols){
 void SemanticAnalyzer::checkMain(AST_Node *n)
 {
     if(strcmp(n->name, "main") == 0) {
-        if((n->expType == Void || n->expType == Integer) && n->num_params == 0) {
+        if( (n->expType == Void || n->expType == Integer) && n->num_params == 0) {
             isMain = true;
         }
     }
@@ -222,6 +222,44 @@ void SemanticAnalyzer::analyzeStmt(AST_Node *n)
     return;
 }
 
+void SemanticAnalyzer::handleReturnInit(AST_Node *n)
+{
+    if(n == NULL) { return; }
+    AST_Node* c1 = n->child[0];
+    AST_Node* c2 = n->child[1];
+    if(c1 != NULL) {
+        if(c1->subkind.exp == IdK) { 
+            AST_Node* global = (AST_Node*)symTable.lookupGlobal(c1->name);
+            AST_Node* local = (AST_Node*)symTable.lookup(c1->name);
+            AST_Node* tmp = global;
+            if (local != NULL) { tmp = local; }
+            else { tmp = global; }
+            if (tmp != NULL && !tmp->isInitialized) {
+                // add warn: variable may be uninitialized
+                errors.insertMsg(createWarn(to_string(c1->lineNum), string(c1->name),0) ,c1->lineNum, 1);
+                tmp->isInitialized = true; // stop cascading errors
+            }
+        }
+        handleReturnInit(c1);
+    }
+    if(c2 != NULL) {
+        if(c2->subkind.exp == IdK) { 
+            AST_Node* global = (AST_Node*)symTable.lookupGlobal(c2->name);
+            AST_Node* local = (AST_Node*)symTable.lookup(c2->name);
+            AST_Node* tmp;
+            if (local != NULL) { tmp = local; }
+            else { tmp = global; }
+ 
+            if (tmp != NULL && !tmp->isInitialized) {
+                // add warn: variable may be uninitialized
+                errors.insertMsg(createWarn(to_string(c2->lineNum), string(c2->name),0) ,c2->lineNum, 1);
+                tmp->isInitialized = true; // stop cascading errors
+            }
+        }
+        handleReturnInit(c2);
+    }
+}
+
 // Deal with Return and check for errors
 void SemanticAnalyzer::handleReturn(AST_Node *n)
 {
@@ -229,7 +267,9 @@ void SemanticAnalyzer::handleReturn(AST_Node *n)
     // check if void function returns non-void
     // check if non-void function returns void
     // check that return is same type as function
-    
+    //printf("line: %d\n", n->lineNum);
+    // check return children are initialized
+
     // check if returning an array
     AST_Node *child = n->child[0];
     if (child != NULL && child->isArray) { // add error: cant return array
@@ -253,6 +293,12 @@ void SemanticAnalyzer::analyzeExp(AST_Node *n)
             handleId(n);
             break;
         case AssignK:
+            if(strcmp(n->name, "++") == 0) { // check if its id is init
+                if(!n->child[0]->isInitialized) { 
+                    // add warn: variable may be uninitialized
+                    errors.insertMsg(createWarn(to_string(n->child[0]->lineNum), string(n->child[0]->name),0) ,n->child[0]->lineNum, 1);
+                }
+            }
             if(n->child[1] != NULL) checkVarSideInit(n->child[1]);
             initLeftVar(n);
             break;
@@ -275,7 +321,7 @@ void SemanticAnalyzer::handleId(AST_Node *n)
     AST_Node *global = (AST_Node*)symTable.lookupGlobal(n->name);
     AST_Node *local = (AST_Node*)symTable.lookup(n->name);
     AST_Node* tmp = (AST_Node*)symTable.lookupGlobal(n->name);
-    
+ 
     if(local != NULL) tmp = local;
     else tmp = global;
 
@@ -303,7 +349,9 @@ void SemanticAnalyzer::handleId(AST_Node *n)
         }
     }
     // check if ID is initialized, add warning
-    if (tmp != NULL && !tmp->isInitialized && tmp->child[0] == NULL) { errors.insertMsg(createWarn(to_string(n->lineNum), string(n->name),0) ,n->lineNum, 1); }
+    if (tmp != NULL && !tmp->isInitialized && tmp->child[0] == NULL && tmp->nodeKind == DeclK && tmp->subkind.decl != FuncK) { 
+        errors.insertMsg(createWarn(to_string(n->lineNum), string(n->name),0) ,n->lineNum, 1); 
+    }
 }
 
 // Check call
@@ -398,6 +446,7 @@ void SemanticAnalyzer::checkVarInit(AST_Node *n)
     AST_Node *local = (AST_Node*)symTable.lookup(n->name);
     if(global != NULL && global->isArray == n->isArray){ // global array
         n->firstDecl = global;
+        n->isInitialized = true;
         return; // already initialized by default
     }
 
@@ -480,6 +529,7 @@ void SemanticAnalyzer::handleStmtErrors(AST_Node* n){
             break;
         case ReturnK:
             // check if return is an array
+            handleReturnInit(n);
             if(c != NULL && c->isArray) { errors.insertMsg(createErr(to_string(n->lineNum)),n->lineNum,0); }
             break;
         case BreakK:
@@ -512,9 +562,10 @@ void SemanticAnalyzer::handleRangeErrors(AST_Node* n){
                     errors.insertMsg(createWarn(to_string(line), string(c->child[1]->name), 0),line,1);
                 }
             }
-            else if(c->subkind.exp == IdK && !c->isInitialized){ // add warn: var may be uninitialized
-                errors.insertMsg(createWarn(to_string(line), string(c->name), 0),line,1);
-            }
+            //else if(c->subkind.exp == IdK && !c->isInitialized){ // add warn: var may be uninitialized
+            //    printf("test2\n");
+                //errors.insertMsg(createWarn(to_string(line), string(c->name), 0),line,1);
+            //}
         }
         else if(i == 1 && c->expType != Integer){
             if(!c->isInitialized){ // add warn: var may be uninitialized
@@ -691,7 +742,7 @@ ExpType SemanticAnalyzer::findUnaryOp(AST_Node* n, std::string op){
     string line = to_string(n->lineNum);
 
     AST_Node* c = n->child[0];
-    if(outputT != c->expType && op != "sizeof"){ // error: Unary operand types dont match
+    if(c->expType != UndefinedType && outputT != c->expType && op != "sizeof"){ // error: Unary operand types dont match
         errors.insertMsg(createErr(line, op, string(ExpTypeToStr(outputT)), string(ExpTypeToStr(c->expType)), 3),n->lineNum, 0);
     }
     if(op == "sizeof"){ // right side should be array
