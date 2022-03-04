@@ -35,6 +35,7 @@ class SemanticAnalyzer {
         void analyzeNode(AST_Node *root);   
         void analyzeDecl(AST_Node *n);      
         void handleVar(AST_Node *n);   
+        void handleVarInit(AST_Node *n);
         void handleFunc(AST_Node *n);       
         void analyzeStmt(AST_Node *n);     
         void handleReturn(AST_Node *n);     
@@ -55,17 +56,22 @@ class SemanticAnalyzer {
         void handleReturnInit(AST_Node *n);
 
         // functions used in second traversal
-        void analyzeNodeErrors(AST_Node* n);
-        void handleStmtErrors(AST_Node* n);
-        void handleExpErrors(AST_Node* n);
-        void handleRangeErrors(AST_Node* n);
+        void analyzeNodeErrors(AST_Node *n);
+        void handleStmtErrors(AST_Node *n);
+        void handleExpErrors(AST_Node *n);
+        void handleCallErrors(AST_Node *n);
+        void handleRangeErrors(AST_Node *n);
+        void handleFromToBy(AST_Node *n);
 
         // deal with expression assignment and operators
-        ExpType findAssOpType(AST_Node* n, ExpKind expK);
-        ExpType findBinaryOp(AST_Node* n, string op);
-        ExpType findUnaryOp(AST_Node* n, string op);
+        ExpType findAssOpType(AST_Node *n, ExpKind expK);
+        ExpType findBinaryOp(AST_Node *n, string op);
+        ExpType findUnaryOp(AST_Node *n, string op);
         void compareBothTypes(ExpType lhs, ExpType rhs, ExpType expected, string op, int line);
         ExpType compareBothNodeTypes(AST_Node *lhs, AST_Node *rhs, string op, int line);
+
+        // Build the IO tree for semantic checks
+        AST_Node* buildIOTree();
 
     public:
 
