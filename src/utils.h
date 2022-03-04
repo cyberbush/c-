@@ -35,11 +35,14 @@ bool isL(string op);
 
 // functions for creating warnings and errors into strings
 string createErr();
-string createErr(string s1);
+string createErr(string s1, int val);
 string createErr(string s1, string s2, int val);
 string createErr(string s1, string s2, string s3, int val);
 string createErr(string s1, string s2, string s3, string s4, int val);
+string createErr(string s1, string s2, string s3, string s4, string s5, int val);
+string createErr(string s1, string s2, string s3, string s4, string s5, string s6, int val);
 
 string createWarn(string s1, string s2, int val);
+string createWarn(string s1, string s2, string s3, int val);
 
 #endif
