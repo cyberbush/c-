@@ -137,3 +137,8 @@ static void copyNodeData(AST_Node* n1, AST_Node* n2)
     n2->size = n1->size;
     n2->stackLocation = n1->stackLocation;
 }
+
+bool isNodeID_Array(AST_Node *n)
+{
+    return (n != NULL && n->nodeKind == ExpK && n->subkind.exp == IdK && n->isArray);
+}

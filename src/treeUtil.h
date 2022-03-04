@@ -21,4 +21,6 @@ static AST_Node* createDeclNode(DeclKind, ExpType, const char*, int, AST_Node*, 
 // Copy data from one to another
 static void copyNodeData(AST_Node* n1, AST_Node* n2);
 
+// Check if node is ID and Array
+bool isNodeID_Array(AST_Node *n);
 #endif
