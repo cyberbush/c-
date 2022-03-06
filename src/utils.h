@@ -33,6 +33,8 @@ bool isRL(string op);
 bool isR(string op);
 bool isL(string op);
 
+bool isBoolExp(string op);
+
 // functions for creating warnings and errors into strings
 string createErr();
 string createErr(string s1, int val);

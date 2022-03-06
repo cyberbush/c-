@@ -58,6 +58,15 @@ bool isL(string op)
     return false;
 }
 
+bool isBoolExp(string op)
+{
+    if(op == "and" || op == "or" || op == "=" || op == "!=" || op == "<" || op == "<=" || op == ">" || op == ">=" || op == "not") {
+        return true;
+    }
+    return false;
+}
+
+
 int countSiblings(AST_Node* t)
 {
     int count = 0;
@@ -263,13 +272,13 @@ string createErr(string s1, string s2, string s3, string s4, int val){
         case 4:
             return "ERROR("+s1+"): '"+s2+"' requires both operands be arrays or not but lhs is"+s3+" an array and rhs is"+s4+" an array.\n";
         case 5: 
-            return "ERROR("+s1+"): Function '"+s2+"' at line "+s3+" is expecting to return "+s4+" but return has no value.\n";
+            return "ERROR("+s1+"): Function '"+s2+"' at line "+s3+" is expecting to return type "+s4+" but return has no value.\n";
         case 6: 
             return "ERROR("+s1+"): Expecting type "+s2+" in position "+s3+" in range of for statement but got type "+s4+".\n";
         case 7:
             return "ERROR("+s1+"): Expecting array in parameter "+s2+" of call to '"+s3+"' declared on line "+s4+".\n";
         case 8:
-            return "ERROR("+s1+"): Initializer for variable '"+s2+"' of "+s3+" is of "+s4+"\n";
+            return "ERROR("+s1+"): Initializer for variable '"+s2+"' of type "+s3+" is of type "+s4+"\n";
         case 9:
             return "ERROR("+s1+"): Initializer for variable '"+s2+"' requires both operands be arrays or not but variable is"+s3+" an array and rhs is"+s4+" an array.\n";
         case 10:
@@ -281,7 +290,7 @@ string createErr(string s1, string s2, string s3, string s4, string s5, int val)
 {   
     switch(val) {
         case 0:
-            return "ERROR("+s1+"): Function '"+s2+"' at line "+s3+" is expecting to return "+s4+" but returns "+s5+".\n";
+            return "ERROR("+s1+"): Function '"+s2+"' at line "+s3+" is expecting to return type "+s4+" but returns type "+s5+".\n";
     }
     return "-11111111111111111111";
 }
@@ -290,7 +299,7 @@ string createErr(string s1, string s2, string s3, string s4, string s5, string s
     switch(val)
     {
         case 0:
-            return "ERROR("+s1+"): Expecting "+s2+" in parameter "+s3+" of call to '"+s4+"' declared on line "+s5+" but got "+s6+".\n";
+            return "ERROR("+s1+"): Expecting type "+s2+" in parameter "+s3+" of call to '"+s4+"' declared on line "+s5+" but got type "+s6+".\n";
     }
     return "-11111111111111111111";
 }
@@ -314,7 +323,7 @@ string createWarn(string s1, string s2, string s3, int val)
 {
     switch(val) {
         case 0:
-            return "WARNING("+s1+"): Expecting to return "+s2+" but function '"+s3+"' has no return statement.\n";
+            return "WARNING("+s1+"): Expecting to return type "+s2+" but function '"+s3+"' has no return statement.\n";
     }
     return "-11111111111111111111";
 }
