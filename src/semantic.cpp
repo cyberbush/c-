@@ -109,6 +109,7 @@ void SemanticAnalyzer::manageScope(AST_Node *n)
     if ( startFunction == n) { // check if we were in a function
         if(startFunction->expType != Void && startFunction->hasReturn == false) { // print warn since we're leaving non-void function without returning
             // add warning: no return statement
+            // MAYBE DONT NEED
             errors.insertMsg(createWarn(to_string(startFunction->lineNum), string(ExpTypeToStr(startFunction->expType)),string(startFunction->name), 0),startFunction->lineNum, 1);
         }
         startFunction = NULL; // reset since we're leaving the function
@@ -120,9 +121,13 @@ void SemanticAnalyzer::manageUsedVars(map<string, void*> symbols){
     for(map<string, void*>::iterator it = symbols.begin(); it != symbols.end(); ++it){
         AST_Node* tmp = (AST_Node*)it->second;
         if(!tmp->isDeclUsed){ // check if its been used
-            if(tmp->subkind.decl == VarK || tmp->subkind.decl == ParamK) { // check if its a variable
+            if(tmp->subkind.decl == VarK) { // check if its a variable
                 // add warn: var seems to not be used
-                errors.insertMsg(createWarn(to_string(tmp->lineNum), string(tmp->name),1) ,tmp->lineNum, 1);
+                errors.insertMsg(createWarn(to_string(tmp->lineNum), string(tmp->name), 1) ,tmp->lineNum, 1);
+            }
+            else if(tmp->subkind.decl == ParamK) { // check if its a paramater
+                // add warn: var seems to not be used
+                errors.insertMsg(createWarn(to_string(tmp->lineNum), string(tmp->name), 3) ,tmp->lineNum, 1);
             }
         }
     }
@@ -187,8 +192,8 @@ void SemanticAnalyzer::handleVar(AST_Node *n)
     bool completed; // did the symbol table insert work?
     
     // try to insert into the symbol table
-    if(n->isStatic) completed = symTable.insertGlobal(name, n);   
-    else completed = symTable.insert(name, n);
+    // check for globabl scope?
+    completed = symTable.insert(name, n);
     
     if (completed) { // inserted successfully
         AST_Node *global = (AST_Node*)symTable.lookupGlobal(name); // if not null then our variable is global
@@ -288,44 +293,6 @@ void SemanticAnalyzer::analyzeStmt(AST_Node *n)
     return;
 }
 
-void SemanticAnalyzer::handleReturnInit(AST_Node *n)
-{
-    if(n == NULL) { return; }
-    AST_Node* c1 = n->child[0];
-    AST_Node* c2 = n->child[1];
-    if(c1 != NULL) {
-        if(c1->subkind.exp == IdK) { 
-            AST_Node* global = (AST_Node*)symTable.lookupGlobal(c1->name);
-            AST_Node* local = (AST_Node*)symTable.lookup(c1->name);
-            AST_Node* tmp = global;
-            if (local != NULL) { tmp = local; }
-            else { tmp = global; }
-            if (tmp != NULL && !tmp->isInitialized) {
-                // add warn: variable may be uninitialized
-                errors.insertMsg(createWarn(to_string(c1->lineNum), string(c1->name),0) ,c1->lineNum, 1);
-                tmp->isInitialized = true; // stop cascading errors
-            }
-        }
-        handleReturnInit(c1);
-    }
-    if(c2 != NULL) {
-        if(c2->subkind.exp == IdK) { 
-            AST_Node* global = (AST_Node*)symTable.lookupGlobal(c2->name);
-            AST_Node* local = (AST_Node*)symTable.lookup(c2->name);
-            AST_Node* tmp;
-            if (local != NULL) { tmp = local; }
-            else { tmp = global; }
- 
-            if (tmp != NULL && !tmp->isInitialized) {
-                // add warn: variable may be uninitialized
-                errors.insertMsg(createWarn(to_string(c2->lineNum), string(c2->name),0) ,c2->lineNum, 1);
-                tmp->isInitialized = true; // stop cascading errors
-            }
-        }
-        handleReturnInit(c2);
-    }
-}
-
 // Deal with Return and check for errors
 void SemanticAnalyzer::handleReturn(AST_Node *n)
 {
@@ -336,14 +303,35 @@ void SemanticAnalyzer::handleReturn(AST_Node *n)
     //printf("line: %d\n", n->lineNum);
     // check return children are initialized
 
-    // check if returning an array
-    AST_Node *child = n->child[0];
-    if (child != NULL && child->isArray) { // add error: cant return array
-        errors.insertMsg(createErr(to_string(n->lineNum), 0), n->lineNum, 0);
+    if(startFunction != NULL) {
+        string line = to_string(n->lineNum);
+        string funLine = to_string(startFunction->lineNum);
+        string name = string(startFunction->name);        
+        AST_Node *tmp = NULL;
+        if(n->child[0] != NULL) { tmp = (AST_Node*)symTable.lookup(n->child[0]->name); }
+
+        if(startFunction->expType == Void && n->child[0] != NULL) { // check if void function returns
+            errors.insertMsg(createErr(line, name, funLine, 2), n->lineNum, 0);
+        }
+        else if(n->child[0] == NULL && startFunction->expType != Void) { // check if non-void function has no return value
+            errors.insertMsg(createErr(line, name, funLine, ExpTypeToStr(startFunction->expType), 5), n->lineNum, 0);
+        }
+        else if(n->child[0] != NULL && tmp != NULL && tmp->expType != startFunction->expType) { // check if return type matches
+            errors.insertMsg(createErr(line, name, funLine, ExpTypeToStr(startFunction->expType), ExpTypeToStr(tmp->expType), 0), n->lineNum, 0);
+        }
+        else if(n->child[0] != NULL && n->child[0]->subkind.exp == ConstantK && n->child[0]->expType != startFunction->expType) { // constant doesnt match
+            errors.insertMsg(createErr(line, name, funLine, ExpTypeToStr(startFunction->expType), ExpTypeToStr(n->child[0]->expType), 0), n->lineNum, 0);
+        }
+
+        // check if returning an array
+        AST_Node *child = n->child[0];
+        if (child != NULL && child->isArray) { // add error: cant return array
+            errors.insertMsg(createErr(to_string(n->lineNum), 0), n->lineNum, 0);
+        }
+        n->expType = startFunction->expType;
+        n->name = strdup(startFunction->name);
+        startFunction->hasReturn = true;
     }
-    n->expType = startFunction->expType;
-    n->name = strdup(startFunction->name);
-    startFunction->hasReturn = true;
 }
 
 // Check expressions
@@ -562,6 +550,7 @@ void SemanticAnalyzer::secondTraversal(AST_Node* root)
 void SemanticAnalyzer::analyzeNodeErrors(AST_Node* n){
     switch(n->nodeKind){
         case DeclK: // dont need to deal with declarartions second time
+            if(n->subkind.decl == VarK && n->child[0] != NULL) { handleInitErrors(n); } // check for init errors
             break;
         case StmtK:
             handleStmtErrors(n);
@@ -585,7 +574,7 @@ void SemanticAnalyzer::handleStmtErrors(AST_Node* n){
             if(isNodeID_Array(simpleExp)){ // check if array and id
                 errors.insertMsg(createErr(to_string(n->lineNum), "if", 7), n->lineNum, 0);
             }
-            if(simpleExp->expType != Boolean){ // check if type not boolean
+            if(simpleExp->expType != Boolean && !isBoolExp(string(simpleExp->name))){ // check if type not boolean
                 errors.insertMsg(createErr(to_string(n->lineNum), "if", string(ExpTypeToStr(simpleExp->expType)), 3), n->lineNum, 0);
             }
         }
@@ -596,8 +585,7 @@ void SemanticAnalyzer::handleStmtErrors(AST_Node* n){
             if(isNodeID_Array(simpleExp)){ // check if array and id
                 errors.insertMsg(createErr(to_string(n->lineNum), "while", 7), n->lineNum, 0);
             }
-
-            if(simpleExp->expType != Boolean){ // check if type not boolean
+            if(simpleExp->expType != Boolean && !isBoolExp(string(simpleExp->name))){ // check if type not boolean
                 errors.insertMsg(createErr(to_string(n->lineNum), "while", string(ExpTypeToStr(simpleExp->expType)), 3), n->lineNum, 0);
             }
         }
@@ -618,6 +606,44 @@ void SemanticAnalyzer::handleStmtErrors(AST_Node* n){
             break;
         default:
             break;
+    }
+}
+
+void SemanticAnalyzer::handleReturnInit(AST_Node *n)
+{
+    if(n == NULL) { return; }
+    AST_Node* c1 = n->child[0];
+    AST_Node* c2 = n->child[1];
+    if(c1 != NULL) {
+        if(c1->subkind.exp == IdK) { 
+            AST_Node* global = (AST_Node*)symTable.lookupGlobal(c1->name);
+            AST_Node* local = (AST_Node*)symTable.lookup(c1->name);
+            AST_Node* tmp = global;
+            if (local != NULL) { tmp = local; }
+            else { tmp = global; }
+            if (tmp != NULL && !tmp->isInitialized) {
+                // add warn: variable may be uninitialized
+                errors.insertMsg(createWarn(to_string(c1->lineNum), string(c1->name),0) ,c1->lineNum, 1);
+                tmp->isInitialized = true; // stop cascading errors
+            }
+        }
+        handleReturnInit(c1);
+    }
+    if(c2 != NULL) {
+        if(c2->subkind.exp == IdK) { 
+            AST_Node* global = (AST_Node*)symTable.lookupGlobal(c2->name);
+            AST_Node* local = (AST_Node*)symTable.lookup(c2->name);
+            AST_Node* tmp;
+            if (local != NULL) { tmp = local; }
+            else { tmp = global; }
+ 
+            if (tmp != NULL && !tmp->isInitialized) {
+                // add warn: variable may be uninitialized
+                errors.insertMsg(createWarn(to_string(c2->lineNum), string(c2->name),0) ,c2->lineNum, 1);
+                tmp->isInitialized = true; // stop cascading errors
+            }
+        }
+        handleReturnInit(c2);
     }
 }
 
@@ -645,12 +671,12 @@ void SemanticAnalyzer::handleRangeErrors(AST_Node* n){
                     errors.insertMsg(createWarn(to_string(line), string(c->child[1]->name), 0),line,1);
                 }
                 if(c->child[1]->expType != Integer) { // check if integer
-                    // add error: expecting int in position 
+                    // add error: expecting int in position 1
                     errors.insertMsg(createErr(to_string(line), "int", to_string(i+1), string(ExpTypeToStr(c->expType)), 6), line, 0);
                 }            
             }
             else if(c->expType != Integer) {
-            // add error: expecting int in position 
+            // add error: expecting int in position 1
                 errors.insertMsg(createErr(to_string(line), "int", to_string(i+1), string(ExpTypeToStr(c->expType)), 6), line, 0);
             }
             else if(c->subkind.exp == IdK && !c->isInitialized) {
@@ -663,10 +689,12 @@ void SemanticAnalyzer::handleRangeErrors(AST_Node* n){
             if(!c->isInitialized){ // add warn: var may be uninitialized
                 errors.insertMsg(createWarn(to_string(line), string(c->name), 0),line,1);
             }
+            // add error: expecting int in position 2
+            errors.insertMsg(createErr(to_string(line), "int", to_string(i+1), string(ExpTypeToStr(c->expType)), 6), line, 0);
         }
         else if(c != NULL && c->expType != Integer){
             // maybe check initialization
-            // add error: expecting int in position
+            // add error: expecting int in position i
             errors.insertMsg(createErr(to_string(line), "int", to_string(i+1), string(ExpTypeToStr(c->expType)), 6), line, 0);
         }
     }
@@ -731,12 +759,51 @@ void SemanticAnalyzer::handleExpErrors(AST_Node* n){
     }
 }
 
+// check if leafs of initializer are constant
+void SemanticAnalyzer::recurseInitializer(AST_Node *n) {
+    if(n==NULL) { return; }
+    if(n->child[0] != NULL) {
+        recurseInitializer(n->child[0]);
+    }
+    if(n->child[1] != NULL) {
+        recurseInitializer(n->child[1]);
+    }
+    if(n->child[0] == NULL && n->child[1] == NULL) { // leaf
+        if(n->subkind.exp != ConstantK) { // if its not constant then initialzer isnt constant
+            isInitConstant = false;
+        }
+        // printf("Leaf Node: %s, line: %d\n",n->name, n->lineNum);
+    }
+    // else {
+    //     printf("Node: %s, line: %d\n",n->name, n->lineNum);
+    // }
+}
+
+// Handle any InitK errors that could occur
+void SemanticAnalyzer::handleInitErrors(AST_Node *n)
+{
+    isInitConstant = true;
+    if(n->expType != n->child[0]->expType) { // types dont match
+        // add error: initializer wrong type
+        errors.insertMsg(createErr(to_string(n->lineNum), string(n->name), ExpTypeToStr(n->expType), ExpTypeToStr(n->child[0]->expType), 8), n->lineNum, 0);
+    }
+    else { // types matched
+        if(n->child[0]->subkind.exp != ConstantK) { // check if constant
+            recurseInitializer(n->child[0]); // check if leafs are constants
+            if(!isInitConstant || strcmp(n->child[0]->name, "?") == 0) {
+                // add error: initializer not constant
+                errors.insertMsg(createErr(to_string(n->lineNum), string(n->name), 9), n->lineNum, 0);
+            }
+        }
+    }
+}
+
 // Handle errors for calls
 void SemanticAnalyzer::handleCallErrors(AST_Node *n)
 {
    AST_Node *tmp = (AST_Node*)symTable.lookupGlobal(n->name);
 
-    if(tmp != NULL){
+    if(tmp != NULL && n->lineNum > tmp->lineNum){
         string line = to_string(n->lineNum);
         string name = string(n->name);
         string tmpLine = to_string(tmp->lineNum);
@@ -753,6 +820,10 @@ void SemanticAnalyzer::handleCallErrors(AST_Node *n)
         for(int i = 0; i < tmp->num_params && l != NULL; i++){
             // check if types match and not undefined
             if(tmp->params[i].first != l->expType && tmp->params[i].first != UndefinedType && l->expType != UndefinedType){
+                if(tmp->params[i].first == Boolean && isBoolExp(string(l->name))) {
+                    // skip, the expected param is boolean and the child is a boolean operator
+                    continue;
+                }
                 errors.insertMsg(createErr(line, string(ExpTypeToStr(tmp->params[i].first)), to_string(i+1), name, tmpLine, string(ExpTypeToStr(l->expType)), 0), n->lineNum, 0);
             }
             // check for array
@@ -869,9 +940,20 @@ ExpType SemanticAnalyzer::findBinaryOp(AST_Node* n, string op){
         }else if(op == "<-"){
             outputT = compareBothNodeTypes(lhs, rhs, op, n->lineNum);
         }
-        if(rhs->expType != Integer){ // check that rhs is int
-            // add error: array should be indexed by type int
-            errors.insertMsg(createErr(line, string(lhs->name), string(ExpTypeToStr(rhs->expType)), 0), n->lineNum,0);
+        if(rhs->expType != Integer && rhs->expType != UndefinedType){ // check that rhs is int
+            AST_Node *tmp = (AST_Node*)symTable.lookupGlobal(rhs->name);
+            if (tmp != NULL && tmp->subkind.decl != FuncK) { // make sure not function
+                // add error: array should be indexed by type int
+                errors.insertMsg(createErr(line, string(lhs->name), string(ExpTypeToStr(rhs->expType)), 0), n->lineNum,0);
+            }
+            else if(tmp != NULL && tmp->subkind.decl == FuncK && tmp->expType != Integer && tmp->expType != UndefinedType) {
+                // add error: array should be indexed by type int
+                errors.insertMsg(createErr(line, string(lhs->name), string(ExpTypeToStr(tmp->expType)), 0), n->lineNum,0);
+            }
+            else if (tmp == NULL) {
+                // add error: array should be indexed by type int
+               errors.insertMsg(createErr(line, string(lhs->name), string(ExpTypeToStr(rhs->expType)), 0), n->lineNum,0);
+            }
         }
     }
     return outputT;

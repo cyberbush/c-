@@ -22,7 +22,8 @@ class SemanticAnalyzer {
         ErrorMessages errors;               // Handles error and warning messages
         AST_Node *startFunction = NULL;     // store the start of function here
         bool isMain;                        // is there a main function
-
+        bool isInitConstant = true;
+        
         // traverses through tree using preorder
         // mainly setting up and managing scopes
         void firstTraversal(AST_Node *root);
@@ -60,6 +61,8 @@ class SemanticAnalyzer {
         void handleStmtErrors(AST_Node *n);
         void handleExpErrors(AST_Node *n);
         void handleCallErrors(AST_Node *n);
+        void handleInitErrors(AST_Node *n);
+        void recurseInitializer(AST_Node *n);
         void handleRangeErrors(AST_Node *n);
         void handleFromToBy(AST_Node *n);
 
