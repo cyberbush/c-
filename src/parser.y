@@ -80,6 +80,7 @@ scopedVarDec
                                                     if(t->child[0] != NULL && t->child[0]->subkind.exp == InitK) t->child[0]->expType = $2->expType;
                                                     t->isStatic = true;
                                                     t->varKind = LocalStatic;
+                                                    t->isInitialized = true; // static variables automatically Initialized
                                                     t = t->sibling;
                                                 } 
                                                 removeToken(&$1);
