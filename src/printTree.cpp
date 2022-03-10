@@ -186,9 +186,3 @@ void printExp(AST_Node* n, bool PFlag)
             break;
     }
 }
-
-// prints the string form of a node's memory information, add a newline if second param is true
-void printMemloc(AST_Node *n, bool newLine){
-    cout << to_string(n);
-    if(newLine) cout << "\n";
-}

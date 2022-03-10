@@ -23,6 +23,4 @@ static void printExp(AST_Node* n, bool PFlag);
 // Used for printing Stmt
 static void printStmt(AST_Node* n, bool PFlag);
 
-void printMemloc(AST_Node *n, bool newLine);
-
 #endif
