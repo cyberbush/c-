@@ -13,7 +13,7 @@
 using namespace std;
 
 // This class manages the semantic analysis by recursing
-// throw the AST and checking for errors and warnings
+// through the AST and checking for errors and warnings
 
 class SemanticAnalyzer {
     private:
@@ -21,7 +21,7 @@ class SemanticAnalyzer {
         SymbolTable symTable;               // symbol table used in analysis
         ErrorMessages errors;               // Handles error and warning messages
         AST_Node *startFunction = NULL;     // store the start of function here
-        bool isMain;                        // is there a main function
+        bool hasMain;                        // is there a main function
         bool isInitConstant = true;
         
         // traverses through tree using preorder
@@ -29,7 +29,7 @@ class SemanticAnalyzer {
         void firstTraversal(AST_Node *root);
         
         // traverse through tree using postorder
-        // mainly checking for errors now
+        // mainly checking for errors
         void secondTraversal(AST_Node *root);
         
         // functions used in first traversal
@@ -48,7 +48,8 @@ class SemanticAnalyzer {
         // helper functions
         void manageScope(AST_Node *n);                              // handles the scope during recursion
         void checkMain(AST_Node *n);                                // checks to see if main function
-        void manageUsedVars(map<string, void*> symbols);
+        void manageUsedVars(map<string, void*> symbols, bool end);
+        
         // deal with initializations
         void checkOpChildInit(AST_Node *lhs, AST_Node *rhs, string op);     // check initialization for operator children
         void checkVarSideInit(AST_Node *n);                                 // check if variables on side are initialized
