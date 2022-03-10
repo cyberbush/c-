@@ -74,6 +74,7 @@ public:
     bool isInitialized = false;     // is it initialized?
     bool isStatic = false;          // is staticly allocated?
     bool isArray = false;           // is this an array
+    bool isMain = false;            // keep track of main node
     bool isDeclUsed = false;        // check if declaration has been used
     bool hasReturn = false;         // check if function has a return
     bool hasInit = true;            //
