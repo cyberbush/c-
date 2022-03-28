@@ -66,6 +66,10 @@ bool isBoolExp(string op)
     return false;
 }
 
+bool isInStr(const char *str, char c)
+{
+    return string(str).find(c) != string::npos;
+}
 
 int countSiblings(AST_Node* t)
 {

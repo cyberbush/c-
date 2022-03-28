@@ -23,6 +23,8 @@ static AST_Node* createNodeFromToken(TokenData* tokenData, int type)
     newNode->child[1] = NULL;
     newNode->child[2] = NULL;
     newNode->nodeKind = ExpK;
+    newNode->name = strdup(tokenData->tokenString);
+    newNode->lineNum = tokenData->line;
     switch(type) {
         case -1: // other ignore
             break;
@@ -50,13 +52,14 @@ static AST_Node* createNodeFromToken(TokenData* tokenData, int type)
             break;
         case 6: // Constant
             newNode->subkind.exp = ConstantK;
+            if(isInStr(newNode->name, '\\')) { 
+                newNode->isSpecialC = true; 
+            }
+            newNode->attrib.cvalue = tokenData->cValue;
             break;
         default:
             printf("Error creating node from token, type: %d\n", type);
     }
-    newNode->name = strdup(tokenData->tokenString);
-    newNode->lineNum = tokenData->line;
-
     return newNode;
 }
 
