@@ -34,6 +34,7 @@ bool isR(string op);
 bool isL(string op);
 
 bool isBoolExp(string op);
+bool isInStr(const char* str, char c);
 
 // functions for creating warnings and errors into strings
 string createErr();
