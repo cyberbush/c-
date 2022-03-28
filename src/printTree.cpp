@@ -160,7 +160,8 @@ void printExp(AST_Node* n, bool PFlag)
     switch(n->subkind.exp)
     {
         case ConstantK:
-            if(PFlag) { printf("Const %s%s of type %s", array.c_str(), n->name, ExpTypeToStr(n->expType)); }
+            if(PFlag) { if(!n->isSpecialC) { printf("Const %s%s of type %s", array.c_str(), n->name, ExpTypeToStr(n->expType));}
+                        else { printf("Const %s%c of type %s", array.c_str(), (char)n->attrib.cvalue, ExpTypeToStr(n->expType)); } }
             else { printf("Const %s", n->name); }
             break;
         case IdK:
