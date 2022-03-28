@@ -9,6 +9,7 @@ using namespace std;
 int lineNum = 1;
 int errNum = 0;
 int warnNum = 0;
+char* lastToken;
 
 // Retrieves the c string from full string
 // Handles escaping and keeps track of length
@@ -109,7 +110,7 @@ static int buildToken(int tokenClass, char *tokenString) {
 		break;
 	}
 
-	// lastToken = strdup(tokenString);
+	lastToken = strdup(tokenString); // save the previous token
 	return tokenClass;
 }
 

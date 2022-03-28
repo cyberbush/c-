@@ -1,10 +1,10 @@
 %{
 #include "main.cpp"
+#define YYERROR_VERBOSE
 using namespace std;
 
 AST_Node* root;      // root of the tree
 
-extern void yyerror(const char *s);
 %}
 
 %union {
@@ -24,10 +24,10 @@ extern void yyerror(const char *s);
 
 %type <tree> program decList declaration varDec scopedVarDec varDecList
 %type <tree> varDecInit varDecId funDec params paramList call
-%type <tree> paramTypeList paramIdList paramId statement closedStmt
-%type <tree> openStmt expressionStmt compoundStmt localDecs stmtList
-%type <tree> closedSelectStmt openSelectStmt closedIterationStmt
-%type <tree> openIterationStmt iterationRange returnStmt breakStmt
+%type <tree> paramTypeList paramIdList paramId statement matched
+%type <tree> unmatched expressionStmt compoundStmt localDecs stmtList
+%type <tree> matchedSelectStmt unmatchedSelectStmt matchedIterationStmt
+%type <tree> unmatchedIterationStmt iterationRange returnStmt breakStmt
 %type <tree> expression assignop simpleExp andExp unaryRelExp relExp
 %type <tree> sumExp mulExp unaryExp factor mutable immutable args argList 
 %type <tree> constant typeSpec unaryop mulop sumop
@@ -56,6 +56,7 @@ decList
 declaration
           : varDec                          { $$ = $1; }
           | funDec                          { $$ = $1; }
+          | error                           { $$ = NULL; }
           ;
 
 //-------------------- Variables --------------------
@@ -68,7 +69,10 @@ varDec
                                                     if(t->child[0] != NULL && t->child[0]->subkind.exp == InitK) t->child[0]->expType = $1->expType;
                                                     t = t->sibling;
                                                 }
+                                                yyerrok;
                                             }
+          | error varDecList ';'            { $$ = NULL; yyerrok; }
+          | typeSpec error ';'              { $$ = NULL; yyerrok; yyerrok; }
           ;
 
 scopedVarDec
@@ -82,7 +86,8 @@ scopedVarDec
                                                     t->varKind = LocalStatic;
                                                     t->isInitialized = true; // static variables automatically Initialized
                                                     t = t->sibling;
-                                                } 
+                                                }
+                                                yyerrok; 
                                                 removeToken(&$1);
                                             }
           | typeSpec varDecList ';'         {
@@ -93,6 +98,7 @@ scopedVarDec
                                                     if(t->child[0] != NULL && t->child[0]->subkind.exp == InitK) t->child[0]->expType = $1->expType;
                                                     t = t->sibling;
                                                 }
+                                                yyerrok;
                                             }
           ;
 
@@ -106,7 +112,10 @@ varDecList
                                                     $$ = $1;
                                                 }
                                                 else $$ = $3;
+                                                yyerrok;
                                             }
+          | varDecList ',' error            { $$ = NULL; }
+          | error                           { $$ = NULL; }
           | varDecInit                      { $$ = $1; }
           ;
 
@@ -114,13 +123,14 @@ varDecInit
           : varDecId                        { $$ = $1; }
           | varDecId ':' simpleExp          {
                                                 $$ = $1;
-                                                if($3 != NULL){
+                                                if($3 != NULL && $$ != NULL){
                                                     $$->child[0] = $3;
                                                     $$->isInitialized = true;
                                                     //$$->isDeclUsed = true;
                                                     $$->hasInit = true;
                                                 }
                                             }
+          | error ':' simpleExp             { $$ = NULL; yyerrok; }
           ;
 
 varDecId
@@ -136,6 +146,8 @@ varDecId
                                                 removeToken(&$1);
                                                 removeToken(&$3);
                                             }
+          | ID '[' error                    { $$ = NULL; }
+          | error ']'                       { $$ = NULL; yyerrok; }
           ;
 
 typeSpec
@@ -165,6 +177,10 @@ funDec
                                                                 $5->name = $1->tokenString;  // save name for scope     
                                                                 removeToken(&$1);                                            
                                                             }
+          | typeSpec error                                  { $$ = NULL; }
+          | typeSpec ID '(' error                           { $$ = NULL; }
+          | ID '(' error                                    { $$ = NULL; }
+          | ID '(' params ')' error                         { $$ = NULL; }
           ;
 
 params 
@@ -185,6 +201,8 @@ paramList
                                                 }
                                             }
           | paramTypeList                   { $$ = $1; }
+          | paramList ';' error             { $$ = NULL; }
+          | error                           { $$ = NULL; }
           ;
 
 paramTypeList
@@ -196,6 +214,7 @@ paramTypeList
                                                     t = t->sibling;
                                                 }
                                             }
+          | typeSpec error                  { $$ = NULL; }
           ;
 
 paramIdList
@@ -208,8 +227,11 @@ paramIdList
                                                     }
                                                     t->sibling = $3;
                                                 }
+                                                yyerrok;
                                             }
           | paramId                         { $$ = $1; }
+          | paramIdList ',' error           { $$ = NULL; }
+          | error                           { $$ = NULL; }
           ;
 
 paramId
@@ -226,33 +248,47 @@ paramId
 
 //-------------------- Statements --------------------
 statement 
-          : closedStmt                      { $$ = $1; }
-          | openStmt                        { $$ = $1; }
+          : matched                          { $$ = $1; }
+          | unmatched                        { $$ = $1; }
           ;
 
-closedStmt
-          : expressionStmt                  { $$ = $1; }
-          | compoundStmt                    { $$ = $1; }
-          | returnStmt                      { $$ = $1; }
-          | breakStmt                       { $$ = $1; }
-          | closedSelectStmt                { $$ = $1; }
-          | closedIterationStmt             { $$ = $1; }
+matched
+          : expressionStmt                      { $$ = $1; }
+          | compoundStmt                        { $$ = $1; }
+          | returnStmt                          { $$ = $1; }
+          | breakStmt                           { $$ = $1; }
+          | matchedSelectStmt                   { $$ = $1; }
+          | matchedIterationStmt                { $$ = $1; }
+	      | IF error                            { $$ = NULL; }
+	      | IF error ELSE matched               { $$ = NULL; yyerrok; }
+	      | IF error THEN matched ELSE matched  { $$ = NULL; yyerrok; }
+	      | WHILE error DO matched              { $$ = NULL; yyerrok; }
+	      | WHILE error                         { $$ = NULL; }
+	      | FOR ID ASGN error DO matched        { $$ = NULL; yyerrok; }
+	      | FOR error                           { $$ = NULL; }
           ;
 
-openStmt
-          : openSelectStmt                  { $$ = $1; }
-          | openIterationStmt               { $$ = $1; }
+unmatched
+          : unmatchedSelectStmt                 { $$ = $1; }
+          | unmatchedIterationStmt              { $$ = $1; }
+          | IF error THEN statement             { $$ = NULL; yyerrok; }
+          | IF error ELSE unmatched             { $$ = NULL; yyerrok; }
+          | IF error THEN matched ELSE unmatched { $$ = NULL; yyerrok; }
+          | WHILE error DO unmatched            { $$ = NULL; yyerrok; }
+          | FOR ID ASGN error DO unmatched      { $$ = NULL; yyerrok; }
           ;
 
 expressionStmt
           : expression ';'                  { $$ = $1; }
           | ';'                             { $$ = NULL; }
+          | error ';'                       { $$ = NULL; yyerrok; }
           ;
 
 compoundStmt
           : BEG localDecs stmtList END      {
                                                 $$ = createStmtNode(CompoundK, "", $1->line, $2, $3, NULL);
                                                 $$->name = strdup("comp scope");
+                                                yyerrok;
                                                 removeToken(&$1);
                                                 removeToken(&$4);
                                             }
@@ -288,8 +324,8 @@ stmtList
           ;
 
 // Dangling else
-closedSelectStmt
-          : IF simpleExp THEN closedStmt ELSE closedStmt        { 
+matchedSelectStmt
+          : IF simpleExp THEN matched ELSE matched        { 
                                                                     $$ = createStmtNode(IfK, "if", $1->line, $2, $4, $6); 
                                                                     removeToken(&$1);
                                                                     removeToken(&$3);
@@ -297,13 +333,13 @@ closedSelectStmt
                                                                 }
           ;
 
-openSelectStmt
+unmatchedSelectStmt
           : IF simpleExp THEN statement                         { 
                                                                     $$ = createStmtNode(IfK, "if", $1->line, $2, $4, NULL); 
                                                                     removeToken(&$1);
                                                                     removeToken(&$3);
                                                                 }
-          | IF simpleExp THEN closedStmt ELSE openStmt          { 
+          | IF simpleExp THEN matched ELSE unmatched          { 
                                                                     $$ = createStmtNode(IfK, "if", $1->line, $2, $4, $6); 
                                                                     removeToken(&$1);
                                                                     removeToken(&$3);
@@ -311,13 +347,13 @@ openSelectStmt
                                                                 }
           ;
 
-closedIterationStmt
-          : WHILE simpleExp DO closedStmt                       { 
+matchedIterationStmt
+          : WHILE simpleExp DO matched                       { 
                                                                     $$ = createStmtNode(WhileK, "", $1->line, $2, $4, NULL); 
                                                                     removeToken(&$1);
                                                                     removeToken(&$3);
                                                                 }
-          | FOR ID ASGN iterationRange DO closedStmt            {
+          | FOR ID ASGN iterationRange DO matched            {
                                                                     AST_Node* n = createNodeFromToken($2, -1);
                                                                     n->nodeKind = DeclK;
                                                                     n->subkind.decl = VarK;
@@ -331,13 +367,13 @@ closedIterationStmt
                                                                 }
           ;
 
-openIterationStmt
-          : WHILE simpleExp DO openStmt                         { 
+unmatchedIterationStmt
+          : WHILE simpleExp DO unmatched                         { 
                                                                     $$ = createStmtNode(WhileK, "", $1->line, $2, $4, NULL); 
                                                                     removeToken(&$1);
                                                                     removeToken(&$3);
                                                                 }
-          | FOR ID ASGN iterationRange DO openStmt              {
+          | FOR ID ASGN iterationRange DO unmatched              {
                                                                     AST_Node* n = createNodeFromToken($2, -1);
                                                                     n->nodeKind = DeclK;
                                                                     n->subkind.decl = VarK;
@@ -362,6 +398,9 @@ iterationRange
                                                             removeToken(&$2);
                                                             removeToken(&$4);
                                                         }
+          | simpleExp TO error                          { $$ = NULL; }
+          | error BY error                              { $$ = NULL; yyerrok; }
+          | simpleExp TO simpleExp BY error             { $$ = NULL; }
           ;
 
 returnStmt
@@ -374,8 +413,10 @@ returnStmt
           | RETURN expression ';'                       {
                                                             $$ = createStmtNode(ReturnK, "", $1->line, $2, NULL, NULL);
                                                             $$->expType = UndefinedType;
+                                                            yyerrok;
                                                             removeToken(&$1);
                                                         }
+          | RETURN error ';'                            { $$ = NULL; yyerrok; }                    
           ;
 
 breakStmt
@@ -399,6 +440,10 @@ expression
                                                             removeToken(&$2);                                                      
                                                         }
           | simpleExp                                   { $$ = $1; }
+          | error assignop expression                          { $$ = NULL; yyerrok; }
+          | mutable assignop error                      { $$ = NULL; }
+          | error INC                                   { $$ = NULL; yyerrok; }
+          | error DEC                                   { $$ = NULL; yyerrok; }
           ;
 
 assignop
@@ -430,6 +475,7 @@ simpleExp
                                                             removeToken(&$2);
                                                         }
           | andExp                                      { $$ = $1; }
+          | simpleExp OR error                          { $$ = NULL; }
           ;
 
 andExp
@@ -438,6 +484,7 @@ andExp
                                                             removeToken(&$2);
                                                         }
           | unaryRelExp                                 { $$ = $1; }
+          | andExp AND error                            { $$ = NULL; }
           ;
 
 unaryRelExp
@@ -446,11 +493,13 @@ unaryRelExp
                                                             removeToken(&$1);
                                                         }
           | relExp                                      { $$ = $1; }
+          | NOT error                                   { $$ = NULL; }
           ;
 
 relExp
           : sumExp relop sumExp                         { $$ = createOpNode($2->tokenString, $2->line, $1, $3, NULL); }
           | sumExp                                      { $$ = $1; }
+          | sumExp relop error                          { $$ = NULL; }
           ;
 
 relop
@@ -465,6 +514,7 @@ relop
 sumExp
           : sumExp sumop mulExp                 { $$ = createOpNode($2->name, $2->lineNum, $1, $3, NULL); }
           | mulExp                              { $$ = $1; }
+          | sumExp sumop error                  { $$ = NULL; }
           ;
 
 sumop
@@ -475,6 +525,7 @@ sumop
 mulExp
           : mulExp mulop unaryExp               { $$ = createOpNode($2->name, $2->lineNum, $1, $3, NULL); }
           | unaryExp                            { $$ = $1; }
+          | mulExp mulop error                  { $$ = NULL; }
           ;
 
 mulop
@@ -486,6 +537,7 @@ mulop
 unaryExp
           : unaryop unaryExp                    { $$ = $1;  $$->child[0] = $2; }
           | factor                              { $$ = $1; }
+          | unaryop error                       { $$ = NULL; }
           ;
 
 unaryop
@@ -508,9 +560,10 @@ mutable
           ;
 
 immutable
-          : '(' expression ')'                  { $$ = $2; }
+          : '(' expression ')'                  { $$ = $2; yyerrok; }
           | call                                { $$ = $1; }
           | constant                            { $$ = $1; }
+          | '(' error                           { $$ = NULL; }
           ;
 
 call
@@ -522,7 +575,8 @@ call
                                                     $$->num_params = countSiblings($3);   // save number of params
                                                     if($3 != NULL) $$->child[0] = $3;
                                                     removeToken(&$1);
-                                                }     
+                                                }
+          | error '('                           { $$ = NULL; yyerrok; }     
           ;
 
 args
@@ -540,8 +594,10 @@ argList
                                                         t->sibling = $3;
                                                         $$ = $1;
                                                     } else $$ = $3;
+                                                    yyerrok;
                                                 }
           | expression                          { $$ = $1; }
+          | argList ',' error                   { $$ = NULL; }
           ;
 
 constant
@@ -571,10 +627,3 @@ constant
           ;
 
 %%
-
-// needs to be updated?
-void yyerror(const char *s) {
-  printf("EEK, parse error on line: %d! Message: %s\n", 111, s);
-  // might as well halt now:
-  exit(-1);
-}
