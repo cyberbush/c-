@@ -15,6 +15,7 @@ int main( int argc, char *argv[] )
 {								
 	int c, args=0; 
     int Dflag=0, pflag=0, Pflag=0;				
+    initErrorProcessing(); 
 	while ((c = ourGetopt(argc, argv, (char *)"dDpPh:")) != -1)
     {
         args++;

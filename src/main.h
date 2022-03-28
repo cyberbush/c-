@@ -14,3 +14,4 @@
 #include "ourgetopt.cpp"    // Options handling
 #include "semantic.cpp"     // Semantic analysis
 #include "symbolTable.h"    // Symbol table
+#include "yyerror.cpp"      // handles syntax errors
