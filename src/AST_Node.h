@@ -78,6 +78,7 @@ public:
     bool isDeclUsed = false;        // check if declaration has been used
     bool hasReturn = false;         // check if function has a return
     bool hasInit = true;            //
+    bool isSpecialC = false;        // Used for special characters like '\0', '\t', '\n' ect..
 
     int size = 0;                   // value size in words
     int stackLocation = 1;          //
