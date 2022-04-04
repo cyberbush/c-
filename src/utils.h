@@ -26,7 +26,9 @@ const char* ExpKindToStr(ExpKind ek);
 // Takes an ExpType and returns the corresponding string
 const char* ExpTypeToStr(ExpType type);
 const char* VarKindToStr(VarKind vk);
+
 string to_string(AST_Node* n);
+void printMemory(AST_Node* n, bool newLine);
 
 // check if operator needs to initialize rhs, lhs
 bool isRL(string op);

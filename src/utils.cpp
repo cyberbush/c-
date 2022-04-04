@@ -25,6 +25,7 @@ int countParams(AST_Node *t)
     return countP;
 }
 
+
 void printUsage()
 {
     printf("usage: -c [options] [sourcefile]\n");
@@ -32,6 +33,7 @@ void printUsage()
     printf("-d          - turn on parser debugging\n");
     printf("-D          - turn on symbol table debugging\n");
     printf("-h          - print this usage message\n");
+    printf("-M          - print augmented tree with variable sizes and locations\n");
     printf("-p          - print the abstract syntax tree\n");
     printf("-P          - print the abstract syntax tree plus type information\n");
 }
@@ -202,6 +204,12 @@ const char* VarKindToStr(VarKind vk)
 string to_string(AST_Node* n){
     string str = " [mem: "+string(VarKindToStr(n->varKind))+" loc: "+to_string(n->stackLocation)+" size: "+to_string(n->size)+"]";
     return str;
+}
+
+void printMemory(AST_Node* n, bool newLine)
+{
+    cout << to_string(n);
+    if(newLine) cout << "\n";
 }
 
 //
