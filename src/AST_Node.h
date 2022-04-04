@@ -63,7 +63,6 @@ public:
     char* name;                     // used to store the name of the node
 
     ExpType expType;                // used when ExpK for type checking
-    VarKind varKind = None;         // type of variable
 
     int num_params =  0;            // store the number of paramaters
 
@@ -81,7 +80,8 @@ public:
     bool isSpecialC = false;        // Used for special characters like '\0', '\t', '\n' ect..
 
     int size = 0;                   // value size in words
-    int stackLocation = 1;          //
+    int stackLocation = 1;          // the location of this symbol on the stack, 1 is uninitialized
+    VarKind varKind = None;         // reference type for memory allocation
 };
 
 #endif

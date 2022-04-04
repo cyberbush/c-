@@ -14,9 +14,9 @@ extern AST_Node* root;      // root of AST tree
 int main( int argc, char *argv[] )				
 {								
 	int c, args=0; 
-    int Dflag=0, pflag=0, Pflag=0;				
+    int Dflag=0, pflag=0, Pflag=0, Mflag=0;				
     initErrorProcessing(); 
-	while ((c = ourGetopt(argc, argv, (char *)"dDpPh:")) != -1)
+	while ((c = ourGetopt(argc, argv, (char *)"dDpPhM:")) != -1)
     {
         args++;
 		switch ( c ) {	
@@ -35,6 +35,10 @@ int main( int argc, char *argv[] )
         case 'h':
             printUsage();
             break;	
+        case 'M':
+            ++Pflag;
+            ++Mflag;
+            break;
 		default:					
 		    return 1;		
         }                                                       
@@ -63,14 +67,22 @@ int main( int argc, char *argv[] )
 
         // perform semantic analysis (may find errors when doing this)
         SemanticAnalyzer semanticAnalyzer;
-        // check -D option
-        if(Dflag) semanticAnalyzer.analyzeTree(root, true);
-        else semanticAnalyzer.analyzeTree(root, false);
-        // check -P option
-        if (Pflag && errNum == 0)
-            //print type info for all types
-            printAST(root, -1, 0, true);
+        semanticAnalyzer.analyzeTree(root, Dflag);
+
+        if(errNum == 0) { // memory allocation if no errors
         
+            int gOffset = 0;
+            // add memory information
+
+            if(Pflag) { // check -P option
+                if(Mflag) { // check -M option
+                    printASTAugmented(root, -1, 0); // print augmented tree
+                }
+                else { // print annotated tree
+                    printAST(root, -1, 0, true);
+                }
+            }
+        }
         // code generation will eventually go here...
     }
 
