@@ -23,4 +23,15 @@ static void printExp(AST_Node* n, bool PFlag);
 // Used for printing Stmt
 static void printStmt(AST_Node* n, bool PFlag);
 
+// Prints augmented tree
+static void printASTAugmented(AST_Node* root, int childNum, int level);
+static void printSiblingASTAug(AST_Node* root, int siblingOrder, int level);
+static void printNodeAug(AST_Node* n);
+static void printTermAug(AST_Node* n);
+static void printDeclAug(AST_Node* n);
+static void printExpAug(AST_Node* n);
+static void printStmtAug(AST_Node* n);
+
+void printNoLeadingZero(const char* str);
+
 #endif

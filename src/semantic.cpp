@@ -144,6 +144,7 @@ void SemanticAnalyzer::checkMain(AST_Node *n)
         if( (n->expType == Void || n->expType == Integer) && n->num_params == 0) {
             hasMain = true;
             n->isMain = true;
+            n->stackLocation = 0;
         }
     }
 }
@@ -405,7 +406,8 @@ void SemanticAnalyzer::handleId(AST_Node *n)
     // check if ID is initialized, add warning
     if (tmp != NULL && !tmp->isInitialized && tmp->child[0] == NULL && tmp->nodeKind == DeclK && tmp->subkind.decl != FuncK) { 
         // add warn: var may be uninitialized
-        errors.insertMsg(createWarn(to_string(n->lineNum), string(n->name),0) ,n->lineNum, 1);
+        // removed warning for checking array id
+        //errors.insertMsg(createWarn(to_string(n->lineNum), string(n->name),0) ,n->lineNum, 1);
         tmp->isInitialized = true; // stop cascading errors
     }
 }
