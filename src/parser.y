@@ -142,7 +142,7 @@ varDecId
           | ID '[' NUMCONST ']'             {
                                                 $$ = createDeclNode(VarK, UndefinedType, $1->tokenString, $1->line, NULL, NULL, NULL);
                                                 $$->isArray = true;
-                                                $$->size = $3->nValue+1;
+                                                $$->size = $3->nValue+1; // array size
                                                 removeToken(&$1);
                                                 removeToken(&$3);
                                             }
@@ -359,6 +359,7 @@ matchedIterationStmt
                                                                     n->subkind.decl = VarK;
                                                                     n->expType = Integer;
                                                                     n->isInitialized = true;
+                                                                    n->size = 1;
                                                                     $$ = createStmtNode(ForK, "", $1->line, n, $4, $6);
                                                                     removeToken(&$1);
                                                                     removeToken(&$2);
