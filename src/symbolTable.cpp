@@ -244,6 +244,28 @@ void * SymbolTable::lookup(std::string sym)
     return data;
 }
 
+// Lookup a symbol in the most recent scope
+// Returns NULL if symbol not found, otherwise it returns the stored void * associated with the symbol
+void * SymbolTable::lookupRecent(std::string sym)
+{
+    void *data;
+    std::string name;
+
+    data = NULL;  // set even though the scope stack should never be empty
+    std::vector<Scope *>::iterator it=stack.end() -1;
+    data = (*it)->lookup(sym);
+    name = (*it)->scopeName();
+    //printf("    found it in the scope named \"%s\".\n", name.c_str());
+
+    if (debugFlg) {
+        printf("DEBUG(SymbolTable): lookup the symbol \"%s\" and ", sym.c_str());
+        if (data) printf("found it in the scope named \"%s\".\n", name.c_str());
+        else printf("did NOT find it!\n");
+    }
+
+    return data;
+}
+
 
 // Lookup a symbol in the global scope
 // returns NULL if symbol not found, otherwise it returns the stored void * associated with the symbol
