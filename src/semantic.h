@@ -5,6 +5,7 @@
 #include "scanType.h"
 #include "AST_Node.h"
 #include "symbolTable.cpp"
+#include "MemoryTracker.cpp"
 #include "errorMessages.cpp"
 #include "treeUtil.h"
 #include <iostream>
@@ -18,6 +19,7 @@ using namespace std;
 class SemanticAnalyzer {
     private:
 
+        MemoryTracker memTrack;             // Used to manage memory locations and sizes
         SymbolTable symTable;               // symbol table used in analysis
         ErrorMessages errors;               // Handles error and warning messages
         AST_Node *startFunction = NULL;     // store the start of function here
@@ -84,6 +86,8 @@ class SemanticAnalyzer {
         void analyzeTree(AST_Node* root, bool symTableDebug); // function to analyzeze the tree
 
         SymbolTable getSymbolTable();
+
+        int getgoffset() { return memTrack.getgoffset(); }
 };
 
 
