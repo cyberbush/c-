@@ -71,12 +71,14 @@ int main( int argc, char *argv[] )
 
         if(errNum == 0) { // memory allocation if no errors
         
-            int gOffset = 0;
+            int goffset = 0;
             // add memory information
 
             if(Pflag) { // check -P option
                 if(Mflag) { // check -M option
                     printASTAugmented(root, -1, 0); // print augmented tree
+                    goffset = semanticAnalyzer.getgoffset();
+                    printf("Offset for end of global space: %d\n", goffset);
                 }
                 else { // print annotated tree
                     printAST(root, -1, 0, true);
