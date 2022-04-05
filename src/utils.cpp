@@ -68,6 +68,16 @@ bool isBoolExp(string op)
     return false;
 }
 
+bool hasScope(AST_Node* n)
+{
+    if(n->nodeKind == StmtK && (n->subkind.stmt == CompoundK || n->subkind.stmt == ForK || n->subkind.stmt == WhileK)) {
+        return true;
+    }
+    else {
+        return false;
+    }
+}
+
 bool isInStr(const char *str, char c)
 {
     return string(str).find(c) != string::npos;

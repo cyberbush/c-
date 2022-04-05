@@ -5,6 +5,7 @@
 #include "scanType.h"
 #include "AST_Node.h"
 #include "string.h"
+#include <iostream>
 using namespace std;
 
 // Function to relinquish memory from token
@@ -37,6 +38,8 @@ bool isL(string op);
 
 bool isBoolExp(string op);
 bool isInStr(const char* str, char c);
+
+bool hasScope(AST_Node* n);
 
 // functions for creating warnings and errors into strings
 string createErr();
