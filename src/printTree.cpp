@@ -274,26 +274,22 @@ void printTermAug(AST_Node* n)
 
 void printDeclAug(AST_Node* n)
 {
-    string statc = n->isStatic ? "static " : "";
+    string statc = n->isStatic ? " static " : "";
+    string array = n->isArray ? " of array" : "";
+    if(n->isStatic && n->isArray) {
+        statc = " of static array";
+        array = "";
+    }
     switch(n->subkind.decl)
     {
         case VarK:
-            if(n->isArray) { 
-                printf("Var: %s is array of type %s", n->name, ExpTypeToStr(n->expType));
-            }
-            else if(n->isStatic) {
-                //if(PFlag) { printf("Var: %s of %stype %s", n->name, statc.c_str(), ExpTypeToStr(n->expType)); }
-                printf("Var: %s of type %s", n->name, ExpTypeToStr(n->expType));
-            }
-            else {
-                printf("Var: %s of type %s", n->name, ExpTypeToStr(n->expType));
-            }
+            printf("Var: %s%s%s of type %s", n->name, statc.c_str(), array.c_str(), ExpTypeToStr(n->expType));
             break;        
         case FuncK:
             printf("Func: %s returns type %s", n->name, ExpTypeToStr(n->expType));
             break;
         case ParamK:
-            if(n->isArray) {printf("Parm: %s is array of type %s", n->name, ExpTypeToStr(n->expType));}
+            if(n->isArray) {printf("Parm: %s of array of type %s", n->name, ExpTypeToStr(n->expType));}
             else {printf("Parm: %s of type %s", n->name, ExpTypeToStr(n->expType));}
             break;
         default:
@@ -325,7 +321,8 @@ void printStmtAug(AST_Node* n)
             printf("While");
             break;
         case ForK:
-            printf("For %s", to_string(n).c_str());
+            if(n->varKind != None) { printf("For %s", to_string(n).c_str()); }
+            else { printf("For%s", to_string(n).c_str()); }
             break;
         case RangeK:
             printf("Range");
@@ -337,8 +334,12 @@ void printStmtAug(AST_Node* n)
 
 void printExpAug(AST_Node* n)
 {
-    string statc = n->isStatic ? "static " : "";
-    string array = n->isArray ? "is array " : "";
+    string statc = n->isStatic ? " static" : "";
+    string array = n->isArray ? " of array" : "";
+    if(n->isStatic && n->isArray) {
+        statc = " of static array";
+        array = "";
+    }
     string mem_info = n->isArray ? to_string(n) : "";
     switch(n->subkind.exp)
     {
@@ -347,7 +348,7 @@ void printExpAug(AST_Node* n)
             else { printf("Const %s'%c' of type %s%s", array.c_str(), (char)n->attrib.cvalue, ExpTypeToStr(n->expType), mem_info.c_str()); } 
             break;
         case IdK:
-            printf("Id: %s of type %s", n->name, ExpTypeToStr(n->expType));
+            printf("Id: %s%s%s of type %s", n->name, statc.c_str(), array.c_str(), ExpTypeToStr(n->expType));
             printMemory(n, false);
             break;
         case AssignK:
