@@ -2,12 +2,14 @@
 
 #include "MemoryTracker.h"
 
-MemoryTracker::MemoryTracker() 
+MemoryTracker::MemoryTracker()
 {
     goffset = 0;
     foffset = 0;
 }
 
+// For handling variable memory.
+// Can be array, global, or local memory
 void MemoryTracker::varMem(AST_Node* n)
 {
     // array offset
@@ -36,6 +38,8 @@ void MemoryTracker::varMem(AST_Node* n)
     }
 }
 
+// For handling array memory
+// Can be global or local
 void MemoryTracker::arrMem(AST_Node* n, int initSize) 
 {
     if(initSize<0) { initSize = 0; }
@@ -54,74 +58,80 @@ void MemoryTracker::arrMem(AST_Node* n, int initSize)
             goffset -= initSize;                        // offset by init size
         }
         n->stackLocation = foffset-1;       // offset 1 to point below size
-        foffset -= n->size;                 // offset for size
+        foffset -= n->size;                 // update foffset for size
         addToCompSize(n->size);             // add to compound size since local scope
     }
 }
 
+// Increment the most recent compound statement size,
+// used when adding variables
 void MemoryTracker::addToCompSize(int size) 
 {
      AST_Node* n = compStack.back().first; // most recent
      n->size += size;
 }
 
+// Handling parameter memory, 
+// Can only be local and can only have size one
 void MemoryTracker::paramMem(AST_Node* n)
 {
-    n->stackLocation = foffset--; // parameters are local and can only be size 1
+    n->stackLocation = foffset--;
     n->size = 1;
 }
 
+// Handle function memory
 void MemoryTracker::funcMem(AST_Node* n)
 {
-    foffset = -2; // reset local frame pointer to param start location
-    n->stackLocation = 0;   // all functions appear to be declared at location 0
-    n->size = -1 * n->size; // function size is -2, plus (negative)size of params
+    foffset = -2;  // Reset the local frame pointer, always starts at -2 because of the old frame pointer and return address
+    n->stackLocation = 0;   // functions start at location 0
+    n->size = -1 * n->size; // funcSize = negative # of params 
 
-    // create a dummy to hold incremented sizes and things
+    // add dummy to the stack to keep track of sizes
     AST_Node* tmp = new AST_Node;
     tmp->name = strdup("dummy");
     tmp->size = n->num_params;
     tmp->stackLocation = 0;
-    // add dummy and foffset to the stack of compound statements
     compStack.push_back(std::make_pair(tmp, foffset));
 
-    // set compStmt ignore flag. since all funtions must be follwed by a compStmt, this will make sure parameters are entered into scope
     ignoreNextComp = true;
     compCount++;
 }
 
+// Entering new compound statement
 void MemoryTracker::enteringComp(AST_Node* n) 
 {
-    // ignore_next_comp flags whether we have just entered a function, if so then the function scope is already created so don't create
-    // a new scope for this compound
+    // Make sure we dont add another scope if we just had a function
     if(ignoreNextComp){
         ignoreNextComp = !ignoreNextComp;
         return;
     }
     compCount++;
-    // init memory/location
+    // initialize location and size
     n->stackLocation = 0;
-    n->size = 0;    // initially use size to count memory used
-    // save this compound on our stack of compounds so that we can track size
-    compStack.push_back(std::make_pair(n, foffset)); // save foffset to reset to when reclaiming memory
+    n->size = 0; 
+    compStack.push_back(std::make_pair(n, foffset)); // add to stack
 }
 
+// Leaving a compound
 void MemoryTracker::leavingComp(AST_Node* n)
 {
     compCount--;
-    pair<AST_Node*, int> compPair = compStack.back(); // get memory info from top of stack
-    compStack.pop_back(); // remove node from stack
-    n->size = (-1 * compPair.first->size) + compPair.second; // size is the original foffset + size of memory for variables in function
+    pair<AST_Node*, int> compPair = compStack.back(); // retrieve the most recent compound info
+    compStack.pop_back(); // remove from top of stack
+    n->size = (-1 * compPair.first->size) + compPair.second; // calculate size
     n->stackLocation = 0;
-    foffset = compPair.second--; // reset offset
+    foffset = compPair.second--; // reset
 }
 
+// handle constant memory
 void MemoryTracker::constMem(AST_Node* n)
 {
-    n->stackLocation = goffset-1;
+    if(n->stackLocation != 1) { return; }
+    n->stackLocation = goffset - 1;
     goffset -= n->size;
 }
 
+// handle id memory
 void MemoryTracker::idMem(AST_Node* n, AST_Node* st_recent, AST_Node* st_all)
 {
     // copy information from the declaration
