@@ -206,24 +206,26 @@ void SemanticAnalyzer::handleVar(AST_Node *n)
     // try to insert into the symbol table
     // check for globabl scope?
     completed = symTable.insert(name, n);
-    
+
     if (completed) { // inserted successfully
         AST_Node *global = (AST_Node*)symTable.lookupGlobal(name); // if not null then our variable is global
         AST_Node *recent = (AST_Node*)symTable.lookupRecent(name); // check to see if its local
-        if (global != NULL) { // is global?
-            n->varKind = Global;
-            n->isInitialized = true;
-        }
-        else if (recent != NULL && recent != global) { // local or local static
+        if (recent != NULL && recent != global) { // local or local static
             if(recent->isStatic) n->varKind = LocalStatic;
             else n->varKind = Local;
         }
+        else if (global != NULL) { // is global?
+            n->varKind = Global;
+            n->isInitialized = true;
+        }
+
         if(n->child[0] != NULL) n->child[0]->varKind = Global;
     }
     else { // add error: symbol already added
         AST_Node *original = (AST_Node *)symTable.lookup(name);
         errors.insertMsg(createErr(to_string(n->lineNum), string(n->name), to_string(original->lineNum), 1), n->lineNum, 0);
     }
+
 }
 
 void SemanticAnalyzer::handleVarInit(AST_Node* n)
@@ -548,7 +550,7 @@ void SemanticAnalyzer::initLeftVar(AST_Node *n)
     }
     if(strcmp(n->name, "++") == 0 || strcmp(n->name, "--") == 0) {
         AST_Node* og = (AST_Node*)symTable.lookup(lhs->name);
-        if(og != NULL && !og->isInitialized) {
+        if(og != NULL && !og->isInitialized && strcmp(lhs->name, "main") != 0) {
             // add warn: variable may be uninitialized
             errors.insertMsg(createWarn(to_string(lhs->lineNum), string(lhs->name),0) ,lhs->lineNum, 1);
         }

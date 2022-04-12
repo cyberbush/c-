@@ -274,7 +274,7 @@ void printTermAug(AST_Node* n)
 
 void printDeclAug(AST_Node* n)
 {
-    string statc = n->isStatic ? " static " : "";
+    string statc = n->isStatic ? " static" : "";
     string array = n->isArray ? " of array" : "";
     if(n->isStatic && n->isArray) {
         statc = " of static array";
@@ -283,7 +283,12 @@ void printDeclAug(AST_Node* n)
     switch(n->subkind.decl)
     {
         case VarK:
-            printf("Var: %s%s%s of type %s", n->name, statc.c_str(), array.c_str(), ExpTypeToStr(n->expType));
+            if(n->isStatic && n->isArray) {
+                printf("Var: %s%s of type %s", n->name, statc.c_str(), ExpTypeToStr(n->expType));
+            }
+            else {
+                printf("Var: %s%s of%s type %s", n->name, array.c_str(),  statc.c_str(), ExpTypeToStr(n->expType));
+            }
             break;        
         case FuncK:
             printf("Func: %s returns type %s", n->name, ExpTypeToStr(n->expType));
@@ -344,11 +349,17 @@ void printExpAug(AST_Node* n)
     switch(n->subkind.exp)
     {
         case ConstantK:
-            if(!n->isSpecialC) { printf("Const %s", array.c_str()); printNoLeadingZero(n->name); printf(" of type %s%s", ExpTypeToStr(n->expType), mem_info.c_str());}
+            if(!n->isSpecialC) { printf("Const "); printNoLeadingZero(n->name); printf("%s of type %s%s", array.c_str(), ExpTypeToStr(n->expType), mem_info.c_str());}
             else { printf("Const %s'%c' of type %s%s", array.c_str(), (char)n->attrib.cvalue, ExpTypeToStr(n->expType), mem_info.c_str()); } 
             break;
         case IdK:
-            printf("Id: %s%s%s of type %s", n->name, statc.c_str(), array.c_str(), ExpTypeToStr(n->expType));
+            if(n->isStatic && n->isArray) {
+            printf("Id: %s%s of type %s", n->name, statc.c_str(), ExpTypeToStr(n->expType));
+
+            }
+            else {
+                printf("Id: %s%s of%s type %s", n->name, array.c_str(), statc.c_str(), ExpTypeToStr(n->expType));
+            }
             printMemory(n, false);
             break;
         case AssignK:
