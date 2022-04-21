@@ -85,7 +85,7 @@ class SemanticAnalyzer {
 
         void analyzeTree(AST_Node* root, bool symTableDebug); // function to analyzeze the tree
 
-        SymbolTable getSymbolTable();
+        SymbolTable getSymbolTable() { return symTable; };
 
         int getgoffset() { return memTrack.getgoffset(); }
 };

@@ -693,8 +693,8 @@ void SemanticAnalyzer::handleRangeErrors(AST_Node* n){
         if(c == NULL){
             continue; // no child exit early or undefined
         }
-        else if(c->nodeKind == ExpK && (c->subkind.exp == IdK || c->subkind.exp == CallK) && (AST_Node*)symTable.lookup(c->name) == NULL) {
-                //printf("exit early\n");
+        else if(c->nodeKind == ExpK && (c->subkind.exp == IdK || c->subkind.exp == CallK) && (AST_Node*)symTable.lookup(c->name) != NULL) {
+                //printf("exit early\t");
                 continue; // exit because not declared
         }
         else if(c->expType == UndefinedType){
@@ -713,7 +713,7 @@ void SemanticAnalyzer::handleRangeErrors(AST_Node* n){
                 }            
             }
             else if(c->expType != Integer) {
-            // add error: expecting int in position 1
+                // add error: expecting int in position 1
                 errors.insertMsg(createErr(to_string(line), "int", to_string(i+1), string(ExpTypeToStr(c->expType)), 6), line, 0);
             }
             else if(c->subkind.exp == IdK && !c->isInitialized) {
@@ -1041,6 +1041,7 @@ void SemanticAnalyzer::compareBothTypes(ExpType lhs, ExpType rhs, ExpType expect
 // check that both sides are the same type and throw error if not
 ExpType SemanticAnalyzer::compareBothNodeTypes(AST_Node* lhs, AST_Node* rhs, string op, int line){
     bool notUD = (lhs->expType != UndefinedType && rhs->expType != UndefinedType);
+    bool notVoid = (lhs->expType != Void && rhs->expType != Void);
 
     if(lhs->expType != rhs->expType && notUD){ // add error: operands not same type
         errors.insertMsg(createErr(to_string(line), op, string(ExpTypeToStr(lhs->expType)), string(ExpTypeToStr(rhs->expType)), 2), line, 0);
