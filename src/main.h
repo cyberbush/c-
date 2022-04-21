@@ -15,3 +15,4 @@
 #include "semantic.cpp"     // Semantic analysis
 #include "symbolTable.h"    // Symbol table
 #include "yyerror.cpp"      // handles syntax errors
+#include "codeGeneration.cpp" // file for generating instructions for TM
