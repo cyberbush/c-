@@ -363,7 +363,7 @@ void printExpAug(AST_Node* n)
             printMemory(n, false);
             break;
         case AssignK:
-            printf("Assign: %s of type %s", n->name, ExpTypeToStr(n->expType));
+            printf("Assign: %s%s of type %s", n->name, array.c_str(), ExpTypeToStr(n->expType));
             break;
         case OpK:
             printf("Op: %s", n->name);

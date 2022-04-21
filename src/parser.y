@@ -605,6 +605,7 @@ constant
           : NUMCONST                            {
                                                     $$ = createNodeFromToken($1, 6);
                                                     $$->expType = Integer;
+                                                    $$->attrib.value = $1->nValue;
                                                     removeToken(&$1);
                                                 }
           | CHARCONST                           {
@@ -623,6 +624,7 @@ constant
           | BOOLCONST                           {   
                                                     $$ = createNodeFromToken($1, 6);
                                                     $$->expType = Boolean;
+                                                    $$->attrib.value = $1->nValue;
                                                     removeToken(&$1);
                                                 }
           ;
