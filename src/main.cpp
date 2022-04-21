@@ -69,9 +69,10 @@ int main( int argc, char *argv[] )
         SemanticAnalyzer semanticAnalyzer;
         semanticAnalyzer.analyzeTree(root, Dflag);
 
+        int goffset = 0;
+
         if(errNum == 0) { // memory allocation if no errors
         
-            int goffset = 0;
             // add memory information
 
             if(Pflag) { // check -P option
@@ -85,7 +86,10 @@ int main( int argc, char *argv[] )
                 }
             }
         }
-        // code generation will eventually go here...
+        if(errNum == 0) { // code generation 
+            generateCode(root, goffset, semanticAnalyzer.getSymbolTable());
+
+        }
     }
 
     // report number of errors and warnings
