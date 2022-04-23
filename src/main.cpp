@@ -9,7 +9,7 @@ extern int yydebug;         // yydebug flag
 extern int errNum;          // number of errors
 extern int warnNum;          // number of warnings
 extern AST_Node* root;      // root of AST tree
-
+FILE *code;
 // Open file and handle options
 int main( int argc, char *argv[] )				
 {								
@@ -50,6 +50,13 @@ int main( int argc, char *argv[] )
         if ((yyin = fopen(argv[file], "r"))) {
             // file open successful
             yyparse();
+            // int filesize = strlen(argv[file]);
+            // char *filename = strdup(argv[file]);
+            // filename[filesize-2] = 't';
+            // filename[filesize-1] = 'm';
+            // code = fopen(filename, "a"); // file for emitcode
+            code = fopen("test.tm", "a"); // file for emitcode
+            //printf("File Name: %s\tsize: %d\n", filename, filesize);
         }
         else {
             // failed to open file
@@ -69,7 +76,8 @@ int main( int argc, char *argv[] )
         SemanticAnalyzer semanticAnalyzer;
         semanticAnalyzer.analyzeTree(root, Dflag);
 
-        int goffset = 0;
+        int goffset = semanticAnalyzer.getgoffset();
+;
 
         if(errNum == 0) { // memory allocation if no errors
         
@@ -78,7 +86,6 @@ int main( int argc, char *argv[] )
             if(Pflag) { // check -P option
                 if(Mflag) { // check -M option
                     printASTAugmented(root, -1, 0); // print augmented tree
-                    goffset = semanticAnalyzer.getgoffset();
                     printf("Offset for end of global space: %d\n", goffset);
                 }
                 else { // print annotated tree
