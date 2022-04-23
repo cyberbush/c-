@@ -4,13 +4,14 @@
 
 static void generateCode(AST_Node *n, int goffset, SymbolTable st)
 {
-    code = fopen("testfile.tm", "a"); // file for emitcode
 
     symbTable = st; // set symbol table
 
+    goffsetFinal = goffset; // set the final goffset
+
     generateIO(); // add IO functions first before rest of code generation 
 
-    traverseTree(n, goffset, true); // traverse tree and start generating code
+    traverseTree(n, 0, true); // traverse tree and start generating code
 
     generateInit(); // Generate Program Initializer
 
@@ -32,7 +33,7 @@ static void traverseTree(AST_Node *n, int offset, bool genSibling)
                             if(n->hasInit) {
                                 if(n->child[0] != NULL && !(n->child[0]->expType == Char && n->child[0]->size > 1)){ // not string
                                     traverseTree(n->child[0], offset, true);
-                                    emitRM("ST", 3, n->stackLocation, 1, "Store variable "+string(n->name));
+                                    emitRM("ST", 3, n->stackLocation, 1, "Store variable",string(n->name));
                                 }
                             }
                             break;
@@ -48,7 +49,6 @@ static void traverseTree(AST_Node *n, int offset, bool genSibling)
                     funcMap[n->name] = emitWhereAmI()-1; // set functions start instruction
                     offset = -2 - n->num_params;
                     if(strcmp("main", n->name) == 0) mainLoc = emitWhereAmI();
-                    emitComment("****************************************");
                     emitComment("FUNCTION "+string(n->name));
                     emitComment("TOFF set: "+to_string(offset));
                     emitRM("ST", 3, -1, 1, "Store return address");
@@ -56,13 +56,12 @@ static void traverseTree(AST_Node *n, int offset, bool genSibling)
                     traverseTree(n->child[1], offset, true); // generate compound
 
                     emitComment("Add standard closing in case there is no return statement");
-                    emitRM("LDC", 2, 0 ,6 , "Set return value 0");
+                    emitRM("LDC", 2, 0 ,6 , "Set return value to 0");
                     
                     emitRM("LD", 3, -1, 1, "Load return address");
                     emitRM("LD", 1, 0, 1, "Adjust fp");
                     emitGoto(0, 3, "Return");
                     emitComment("END FUNCTION "+string(n->name));
-                    if(strcmp("main", n->name)==0) { mainRetLoc=emitWhereAmI()-1; };
                     break;
             }
             break;
@@ -70,14 +69,27 @@ static void traverseTree(AST_Node *n, int offset, bool genSibling)
         case ExpK: // Expressions
             switch(n->subkind.exp) {
                 case OpK:
+                    traverseTree(n->child[0], offset, true); // generate lhs
+
+                    if(n->child[1]!=NULL) { // binary op
+                        emitRM("ST", 3, offset, 1, "Push left side"); // store lhs
+                        emitComment("TOFF dec: "+to_string(--offset));
+                        traverseTree(n->child[1], offset, true); // generate rhs
+                        emitComment("TOFF inc: "+to_string(++offset));
+                        emitRM("LD", 4, offset, 1, "Pop left into ac1");
+                    }
+
+                    emitOp(string(n->name)); // generates code based on operator
+
                     break;
                 case ConstantK:
+                    emitComment("EXPRESSION");
                     switch(n->expType){
                         case Integer:
-                            emitRM("LDC", 3, n->attrib.value, 6, "Load Integer constant");
+                            emitRM("LDC", 3, n->attrib.value, 6, "Load integer constant");
                             break;
                         case Char:
-                            emitRM("LDC", 3, n->attrib.cvalue, 6, "Load Char constant");
+                            emitRM("LDC", 3, n->attrib.cvalue, 6, "Load char constant");
                             break;
                         case Boolean:
                             emitRM("LDC", 3, n->attrib.value, 6, "Load Boolean constant");
@@ -85,20 +97,36 @@ static void traverseTree(AST_Node *n, int offset, bool genSibling)
                     }
                     break;
                 case IdK:
-                    emitRM("LD", 3, n->stackLocation, 1, "Load variable "+string(n->name));
+                    switch(n->varKind) {
+                        case Local:
+                            emitRM("LD", 3, n->stackLocation, 1, "Load variable", string(n->name));
+                            break;
+                        case Global:
+                            emitRM("LD", 3, n->stackLocation, 0, "Load variable", string(n->name));
+                            break;
+                        case LocalStatic:
+                            emitRM("LD", 3, n->stackLocation, 0, "Load variable", string(n->name));
+                            break;
+                    }
                     break;
                 case AssignK:
-                    emitComment("EXPRESSION");
+                {   string op = string(n->name);
+
+                    if(isR(op)) { emitAssignOp(n, op, offset); break; } // generate assign op
+                    
+                    if(op == "--" || op == "++" ) { emitIncDecOp(n, op); break; } // generate inc/dec op
+                    
                     traverseTree(n->child[1], offset, true); // generate right child
-                    traverseTree(n->child[0], offset, false); // generate id
+                    emitRM("ST", 3, n->child[0]->stackLocation, n->child[0]->varKind == Local || n->child[0]->varKind == Parameter, "Store variable",string(n->child[0]->name));
                     break;
+                }
                 case InitK:
                     break;
                 case CallK:
                     reset_offset = offset;
                     emitComment("EXPRESSION");
                     emitComment("CALL "+string(n->name));
-                    emitRM("ST", 1, offset, 1, "Store fp in ghost frame for output");
+                    emitRM("ST", 1, offset, 1, "Store fp in ghost frame for",string(n->name));
                     emitComment("TOFF dec: "+to_string(--offset));
 
                     generateArgs(n->child[0], --offset, 0); // generate code for arguments
@@ -107,9 +135,9 @@ static void traverseTree(AST_Node *n, int offset, bool genSibling)
                     offset = reset_offset;
                     emitRM("LDA", 1, offset, 1, "Ghost frame becomes new active frame");
                     emitRM("LDA", 3, 1, 7, "Return address in ac");
-                    emitGoto(funcMap[n->name]-emitWhereAmI(), 7, "Call "+string(n->name));
-                    emitRM("LDA", 3, 0, 2, "Save the result ac");
-                    emitComment("CALL end "+string(n->name));
+                    emitGoto(funcMap[n->name]-emitWhereAmI(), 7, "CALL",string(n->name));
+                    emitRM("LDA", 3, 0, 2, "Save the result in ac");
+                    emitComment("Call end "+string(n->name));
                     emitComment("TOFF set: "+to_string(offset));
                     break;
             }
@@ -160,7 +188,7 @@ static void traverseTree(AST_Node *n, int offset, bool genSibling)
 // Generate the instructions for loading arguments from a function call
 static void generateArgs(AST_Node *n, int toffset, int num_args)
 {
-    emitComment("TOFF: dec: "+to_string(toffset));
+    emitComment("TOFF dec: "+to_string(toffset));
     if(n==NULL) { return; }
     
     emitComment("Param "+to_string(num_args+1));
@@ -172,6 +200,62 @@ static void generateArgs(AST_Node *n, int toffset, int num_args)
     generateArgs(n->sibling, toffset-1, num_args++); // generate code for sibling arguments
 }
 
+static void emitOp(string op)
+{
+    // binary
+    if(op == "or") { emitRO("OR", 3, 4, 3, "Op OR"); }
+    else if(op == "and") { emitRO("AND", 3, 4, 3, "Op AND"); }
+    else if(op == "=") { emitRO("TEQ", 3, 4, 3, "Op ="); }
+    else if(op == "<") { emitRO("TLT", 3, 4, 3, "Op <"); }
+    else if(op == ">") { emitRO("TGT", 3, 4, 3, "Op >"); }
+    else if(op == ">=") { emitRO("TGE", 3,4,3, "Op >="); }
+    else if(op == "<=") { emitRO("TLE", 3,4,3, "Op <="); }
+    else if(op == "><") { emitRO("TNE", 3,4,3, "Op ><"); }
+    else if(op == "*") { emitRO("MUL", 3, 4, 3, "Op *"); }
+    else if(op == "+") { emitRO("ADD", 3, 4, 3, "Op +"); }
+    else if(op == "-") { emitRO("SUB", 3, 4, 3, "Op -"); }
+    else if(op == "/") { emitRO("DIV", 3, 4, 3, "Op /"); }
+    else if(op == "%") { emitRO("MOD", 3, 4, 3, "Op %"); }
+    else if(op == "[") {
+        emitRO("SUB", 3, 4, 5, "Compute offset of value");
+        emitRM("LD", 3, 0, 3, "get value");
+    }
+    // unary
+    else if(op == "not") {
+        emitRM("LDC", 4, 1, 6, "Load 1");
+        emitRO("XOR", 3, 3, 4, "Op XOR to get logical not");
+    }
+    else if(op == "chsign") { emitRO("NEG", 3, 3, 3, "Op unary -"); }
+    else if(op == "sizeof") { emitRM("LD", 3, 1, 3, "Load array size"); }
+    else if(op == "?")      { emitRO("RND", 3, 3, 6, "Op ?"); }
+}
+
+static void emitAssignOp(AST_Node *n, string op, int toff) 
+{
+    // array
+    // traverseTree(n->child[0]->child[1], toff-1, true);
+    // emitRM("ST", 3, toff, 1, "Push index");
+    // emitComment("TOFF dec: "+to_string(--toff));
+    // traverseTree(n->child[1], toff, true);
+    // emitComment("TOFF inc: "+to_string(++toff));
+    // emitRM("LD", 4, toff, 1, "Pop index");
+    // non-array
+    traverseTree(n->child[1], toff-1, true);
+    emitRM("LD", 4, n->child[0]->stackLocation, n->child[0]->varKind!=Global, "load lhs variable", string(n->child[0]->name));
+    if (op == "+=") { emitRO("ADD", 3, 4, 3, "op +="); }
+    else if(op == "-=") { emitRO("SUB", 3, 4, 3, "op -="); }
+    else if(op == "*=") { emitRO("MUL", 3, 4, 3, "op *="); }
+    else if(op == "/=") { emitRO("DIV", 3, 4, 3, "op /="); }
+    emitRM("ST", 3, n->child[0]->stackLocation, n->child[0]->varKind == Local || n->child[0]->varKind == Parameter, "Store variable", string(n->child[0]->name));
+}
+
+static void emitIncDecOp(AST_Node *n, string op)
+{
+    emitRM("LD", 3, n->child[0]->stackLocation, n->child[0]->varKind == Local || n->child[0]->varKind == Parameter, "load lhs variable", string(n->child[0]->name));
+    if(op == "--") { emitRM("LDA", 3, -1, 3, "decrement value of",string(n->child[0]->name)); }
+    else if(op == "++") { emitRM("LDA", 3, 1, 3, "increment value of",string(n->child[0]->name)); }
+    emitRM("ST", 3, n->child[0]->stackLocation, n->child[0]->varKind!=Global, "Store variable", string(n->child[0]->name));
+}
 
 // Generates initialization code that is called at the begining of the program.
 static void generateInit()
@@ -180,7 +264,7 @@ static void generateInit()
     backPatchAJumpToHere(0, "Jump to init [backpatch]"); 
 
     emitComment("INIT");
-    emitRM("LDA", 1, 0, 0, "set first frame at end of globals");
+    emitRM("LDA", 1, goffsetFinal, 0, "set first frame at end of globals");
     emitRM("ST", 1, 0, 1, "store old fp (point to self)");
 
     emitComment("INIT GLOBALS AND STATICS");
@@ -196,13 +280,13 @@ static void generateInit()
 static void generateIO()
 {
     emitSkip(1);
-    pmem = 1; 
     //------------- header -------------
     emitComment("****************************************");
     emitComment("C- Compiler Version 1");
     emitComment("Built: Apr 19, 2022 (toffset telemetry");
     emitComment("Author: David C Bush");
-    emitComment("****************************************");
+    emitComment("");
+    emitComment("** ** ** ** ** ** ** ** ** ** ** **");
     //------------- input -------------
     funcMap["input"] = emitWhereAmI()-1; // set functions start instruction
     emitComment("FUNCTION input");
@@ -214,7 +298,8 @@ static void generateIO()
     emitComment("END FUNCTION input");
     //------------- output -------------
     funcMap["output"] = emitWhereAmI()-1; 
-    emitComment("****************************************");
+    emitComment("");
+    emitComment("** ** ** ** ** ** ** ** ** ** ** **");
     emitComment("FUNCTION output");
     emitRM("ST", 3, -1, 1, "Store return address");
     emitRM("LD", 3, -2, 1, "Load parameter");
@@ -225,7 +310,8 @@ static void generateIO()
     emitComment("END FUNCTION output");
     //------------- inputb -------------
     funcMap["inputb"] = emitWhereAmI()-1; 
-    emitComment("****************************************");
+    emitComment("");
+    emitComment("** ** ** ** ** ** ** ** ** ** ** **");
     emitComment("FUNCTION inputb");
     emitRM("ST", 3, -1, 1, "Store return address");
     emitRO("INB", 2, 2, 2, "Grab bool input");
@@ -235,7 +321,8 @@ static void generateIO()
     emitComment("END FUNCTION inputb");
     //------------- outputb -------------
     funcMap["outputb"] = emitWhereAmI()-1; 
-    emitComment("****************************************");
+    emitComment("");
+    emitComment("** ** ** ** ** ** ** ** ** ** ** **");
     emitComment("FUNCTION outputb");
     emitRM("ST", 3, -1, 1, "Store return address");
     emitRM("LD", 3, -2, 1, "Load parameter");
@@ -246,7 +333,8 @@ static void generateIO()
     emitComment("END FUNCTION outputb");
     //------------- inputc -------------
     funcMap["inputc"] = emitWhereAmI()-1; 
-    emitComment("****************************************");
+    emitComment("");
+    emitComment("** ** ** ** ** ** ** ** ** ** ** **");
     emitComment("FUNCTION inputc");
     emitRM("ST", 3, -1, 1, "Store return address");
     emitRO("INC", 2, 2, 2, "Grab char input");
@@ -256,7 +344,8 @@ static void generateIO()
     emitComment("END FUNCTION inputc");
     //------------- outputc -------------
     funcMap["outputc"] = emitWhereAmI()-1; 
-    emitComment("****************************************");
+    emitComment("");
+    emitComment("** ** ** ** ** ** ** ** ** ** ** **");
     emitComment("FUNCTION outputc");
     emitRM("ST", 3, -1, 1, "Store return address");
     emitRM("LD", 3, -2, 1, "Load parameter");
@@ -267,7 +356,8 @@ static void generateIO()
     emitComment("END FUNCTION outputc");
     //------------- outnl -------------
     funcMap["outnl"] = emitWhereAmI()-1; 
-    emitComment("****************************************");
+    emitComment("");
+    emitComment("** ** ** ** ** ** ** ** ** ** ** **");
     emitComment("FUNCTION outnl");
     emitRM("ST", 3, -1, 1, "Store return address");
     emitRO("OUTNL", 3, 3, 3, "Output a newline");
@@ -275,4 +365,6 @@ static void generateIO()
     emitRM("LD", 1, 0, 1, "Adjust fp");
     emitGoto(0, 3, "Return");
     emitComment("END FUNCTION outnl");
+    emitComment("");
+    emitComment("** ** ** ** ** ** ** ** ** ** ** **");
 }
