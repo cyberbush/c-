@@ -38,6 +38,14 @@ void printUsage()
     printf("-P          - print the abstract syntax tree plus type information\n");
 }
 
+bool isIO(string str)
+{   
+    if (str.find("outnl") != string::npos || str.find("input") != string::npos || str.find("output") != string::npos || str.find("inputb") != string::npos || str.find("outputb") != string::npos || str.find("inputc") != string::npos || str.find("inputc") != string::npos) {
+        return true;
+    }
+    return false;
+}
+
 bool isRL(string op)
 {
     if(op == "and" || op == "or" || op == "<-" || op == "=" || op == "><" || op == "<" || op == "<=" || op == ">" || op == ">=" || op == "+" || op == "-" || op == "*" || op == "/" || op == "%") {

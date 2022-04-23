@@ -31,6 +31,8 @@ const char* VarKindToStr(VarKind vk);
 string to_string(AST_Node* n);
 void printMemory(AST_Node* n, bool newLine);
 
+bool isIO(string str);
+
 // check if operator needs to initialize rhs, lhs
 bool isRL(string op);
 bool isR(string op);
