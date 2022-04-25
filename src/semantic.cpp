@@ -205,7 +205,8 @@ void SemanticAnalyzer::handleVar(AST_Node *n)
     
     // try to insert into the symbol table
     // check for globabl scope?
-    completed = symTable.insert(name, n);
+    if(n->isStatic) { completed = symTable.insertGlobal(name, n); }
+    else { completed = symTable.insert(name, n); }
 
     if (completed) { // inserted successfully
         AST_Node *global = (AST_Node*)symTable.lookupGlobal(name); // if not null then our variable is global
