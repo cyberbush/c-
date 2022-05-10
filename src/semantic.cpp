@@ -3,6 +3,11 @@
 extern int errNum;
 extern int warnNum;
 
+void pointerPrintStr1(void *data)
+{
+    printf("%s ", (char *)(data));
+}
+
 SemanticAnalyzer::SemanticAnalyzer()
 {
     // Build the Input/Output tree for semantic checking
@@ -93,6 +98,11 @@ void SemanticAnalyzer::firstTraversal(AST_Node *root)
 // This function is used to manage the scope for the node its associated with
 void SemanticAnalyzer::manageScope(AST_Node *n)
 {
+    if(isRepeat && repeatUsed) {
+        isRepeat = false;
+        repeat = 0;
+        
+    }
     if(hasScope(n)) {
         memTrack.leavingComp(n); // deal with memory info for compound statements
     }
@@ -207,6 +217,7 @@ void SemanticAnalyzer::handleVar(AST_Node *n)
     // check for globabl scope?
     if(n->isStatic) { completed = symTable.insertGlobal(name, n); }
     else { completed = symTable.insert(name, n); }
+    //completed = symTable.insert(name, n);
 
     if (completed) { // inserted successfully
         AST_Node *global = (AST_Node*)symTable.lookupGlobal(name); // if not null then our variable is global
@@ -221,6 +232,15 @@ void SemanticAnalyzer::handleVar(AST_Node *n)
         }
 
         if(n->child[0] != NULL) n->child[0]->varKind = Global;
+    }
+    else if(n->isStatic) { // static but already declared global
+        repeat++;
+        string newName = name+to_string(repeat);
+        isRepeat = true;
+        n->name = (char*)newName.c_str();
+        symTable.insertGlobal(newName, n);
+        n->varKind = Global;
+        n->isInitialized = true;
     }
     else { // add error: symbol already added
         AST_Node *original = (AST_Node *)symTable.lookup(name);
@@ -283,7 +303,7 @@ void SemanticAnalyzer::analyzeStmt(AST_Node *n)
             break;
         case ForK:
             symTable.enter("For Loop");
-            if(n->child[2] != NULL && n->child[2]->subkind.stmt == CompoundK) strcpy(n->child[2]->name, "skip");
+            if(n->child[2] != NULL && n->child[2]->subkind.stmt == CompoundK) { strcpy(n->child[2]->name, "skip"); }
             memTrack.enteringComp(n); // update memory tracker for new scope
             break;
         case CompoundK:
@@ -303,6 +323,7 @@ void SemanticAnalyzer::analyzeStmt(AST_Node *n)
             break;
         }
         case RangeK:
+            memTrack.updateFoffset(2); // needed to update the foffset for code gen
             break;
         default:
             printf("Error in SemanticAnalyzer::analyzeStmt determining type\n");
@@ -365,8 +386,17 @@ void SemanticAnalyzer::analyzeExp(AST_Node *n)
         case IdK:
         {
             handleId(n);
-            AST_Node* st_recent = (AST_Node*)symTable.lookupRecent(n->name);
-            AST_Node* st_all = (AST_Node*)symTable.lookup(n->name);
+            AST_Node* st_recent;
+            AST_Node* st_all;
+            if(isRepeat) {
+                string newName = string(n->name)+to_string(repeat);
+                st_recent = (AST_Node*)symTable.lookupRecent(newName.c_str());
+                st_all = (AST_Node*)symTable.lookup(newName.c_str());
+            }
+            else {
+                st_recent = (AST_Node*)symTable.lookupRecent(n->name);
+                st_all = (AST_Node*)symTable.lookup(n->name);
+            }
             memTrack.idMem(n, st_recent, st_all); // update id memory info 
             break;
         }
@@ -390,22 +420,30 @@ void SemanticAnalyzer::analyzeExp(AST_Node *n)
 // Check against using function as var, use of undeclared var
 void SemanticAnalyzer::handleId(AST_Node *n)
 {
-    AST_Node *global = (AST_Node*)symTable.lookupGlobal(n->name);
-    AST_Node *local = (AST_Node*)symTable.lookup(n->name);
-    AST_Node* tmp = (AST_Node*)symTable.lookupGlobal(n->name);
- 
-    if(local != NULL) tmp = local;
-    else tmp = global;
+    char* name = n->name;
+    if(isRepeat){
+        string newName = string(name)+to_string(repeat);
+        name = (char*)newName.c_str();
+        repeatUsed = true;
+    }
+    AST_Node *global = (AST_Node*)symTable.lookupGlobal(name);
+    AST_Node *local = (AST_Node*)symTable.lookup(name);
+    AST_Node *recent = (AST_Node*)symTable.lookupRecent(name);
+    AST_Node *tmp = (AST_Node*)symTable.lookupGlobal(name);
+
+    if(local != NULL) { tmp = local; }
+    else if(recent != NULL) { tmp = recent; }
+    else { tmp = global; }
 
     if(tmp != NULL && tmp->subkind.decl == FuncK){ // add error: cant use funct as variable
-            errors.insertMsg(createErr(to_string(n->lineNum), string(n->name), 4), n->lineNum, 0);
-            tmp->isDeclUsed = n->isDeclUsed = true;
+        errors.insertMsg(createErr(to_string(n->lineNum), string(n->name), 4), n->lineNum, 0);
+        tmp->isDeclUsed = n->isDeclUsed = true;
     }
-    else if(tmp != NULL){ // if global exists, get type
-            copyNodeData(tmp, n);
-            tmp->isDeclUsed = n->isDeclUsed = true;
-
-    }else{ // check most recent scope for previous declaration
+    else if(tmp != NULL){ //
+        copyNodeData(tmp, n);
+        tmp->isDeclUsed = n->isDeclUsed = true;
+    } 
+    else{ // check most recent scope for previous declaration
         tmp = (AST_Node*)symTable.lookupRecent(n->name);
         if(tmp == NULL){ // add error: symbol is not declared
             n->isInitialized = true; // if not declared, impossible to check if initialized

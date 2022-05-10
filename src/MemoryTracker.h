@@ -31,6 +31,7 @@ class MemoryTracker {
         void leavingComp(AST_Node* n);
         void constMem(AST_Node* n); // update constant string memory
         void idMem(AST_Node* n, AST_Node* st_recent, AST_Node* st_all);
+        void updateFoffset(int val);
         int getgoffset() { return goffset; }
 };
 

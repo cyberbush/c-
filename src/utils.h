@@ -32,6 +32,8 @@ string to_string(AST_Node* n);
 void printMemory(AST_Node* n, bool newLine);
 
 bool isIO(string str);
+bool isStr(AST_Node *n);
+
 
 // check if operator needs to initialize rhs, lhs
 bool isRL(string op);
@@ -40,6 +42,8 @@ bool isL(string op);
 
 bool isBoolExp(string op);
 bool isInStr(const char* str, char c);
+
+char* createStrNoEscape(char * s);
 
 bool hasScope(AST_Node* n);
 

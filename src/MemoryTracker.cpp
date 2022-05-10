@@ -8,6 +8,11 @@ MemoryTracker::MemoryTracker()
     foffset = 0;
 }
 
+void MemoryTracker::updateFoffset(int val) 
+{
+    foffset -= val;
+}
+
 // For handling variable memory.
 // Can be array, global, or local memory
 void MemoryTracker::varMem(AST_Node* n)

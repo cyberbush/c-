@@ -31,13 +31,37 @@ static void generateNode(AST_Node *n, int offset, bool genSibling)
                     switch(n->varKind) {
                         case Local:
                             if(n->hasInit) {
-                                if(n->child[0] != NULL && !(n->child[0]->expType == Char && n->child[0]->size > 1)){ // not string
+                                if(n->child[0]!=NULL && !(n->child[0]->expType==Char&&n->child[0]->varKind==Global&&n->child[0]->isArray==true)){ // not string
                                     generateNode(n->child[0], offset, true);
                                     emitRM("ST", 3, n->stackLocation, 1, "Store variable",string(n->name));
                                 }
-                                if(n->isArray) {
+                                if(n->isArray) { // array
                                     emitRM("LDC", 3, n->size-1, 6, "load size of array", string(n->name));
                                     emitRM("ST", 3, n->stackLocation+1, 1, "save size of array", string(n->name));
+                                }
+                                if(isStr(n->child[0])) { // STRINGCONST
+                                    if(isInStr(n->child[0]->name, '\\')) { // special chars
+                                        if(isFirst) {
+                                            isFirst = false;
+                                        } 
+                                        else if (!isFirst){
+                                            goffsetFinal++;
+                                            goffsetFinal += num_strs;
+                                            n->child[0]->stackLocation++;
+                                            n->child[0]->stackLocation+= num_strs;
+                                            num_strs++;
+                                        }
+                                        n->child[0]->size--; 
+                                        n->child[0]->name = createStrNoEscape(n->child[0]->name); 
+                                    }
+                                    
+                                    generateNode(n->child[0], offset, true);
+                                    emitRM("LDA", 3, n->child[0]->stackLocation, 0, "Load address of char array");
+                                    emitRM("LDA", 4, n->stackLocation, 1, "address of lhs");
+                                    emitRM("LD", 5, 1, 3, "size of rhs");
+                                    emitRM("LD", 6, 1, 4, "size of lhs");
+                                    emitRO("SWP", 5, 6, 6, "pick smallest size");
+                                    emitRO("MOV", 4, 3, 5, "array op =");
                                 }
                             }
                             break;
@@ -83,6 +107,7 @@ static void generateNode(AST_Node *n, int offset, bool genSibling)
                         generateNode(n->child[1], offset, true); // generate rhs
                         emitComment("TOFF inc: "+to_string(++offset));
                         emitRM("LD", 4, offset, 1, "Pop left into ac1");
+                        if(n->child[0]->isArray && n->child[1]->isArray) { emitOpArray(n, offset); }
                     }
 
                     emitOp(string(n->name)); // generates code based on operator
@@ -94,8 +119,9 @@ static void generateNode(AST_Node *n, int offset, bool genSibling)
                         case Integer:
                             emitRM("LDC", 3, n->attrib.value, 6, "Load integer constant");
                             break;
-                        case Char:
-                            emitRM("LDC", 3, n->attrib.cvalue, 6, "Load char constant");
+                        case Char: // char and string constant
+                            if(isStr(n)) { emitStrLit(n->stackLocation, string(n->name)); }
+                            else { emitRM("LDC", 3, n->attrib.cvalue, 6, "Load char constant"); }
                             break;
                         case Boolean:
                             emitRM("LDC", 3, n->attrib.value, 6, "Load Boolean constant");
@@ -121,6 +147,14 @@ static void generateNode(AST_Node *n, int offset, bool genSibling)
                     if(op == "--" || op == "++" ) { emitIncDecOp(n, op); break; } // generate inc/dec op
                     
                     if(!strcmp(n->child[0]->name,"[")) { emitAssignArray(n, n->child[0]->child[0], offset); } // generate assign array
+                    else if(isStr(n->child[0])) {
+                        generateNode(n->child[1], offset-1, true);
+                        emitRM("LDA", 4, n->child[0]->stackLocation, 1, "address of lhs");
+                        emitRM("LD", 5, 1, 3, "size of rhs");
+                        emitRM("LD", 6, 1, 4, "size of lhs");
+                        emitRO("SWP", 5, 6, 6, "pick smallest size");
+                        emitRO("MOV", 4, 3, 5, "array op =");
+                    }
                     else { // normal assign
                         generateNode(n->child[1], offset, true); // generate right child
                         emitRM("ST", 3, n->child[0]->stackLocation, n->child[0]->varKind == Local || n->child[0]->varKind == Parameter, "Store variable",string(n->child[0]->name));
@@ -190,6 +224,37 @@ static void generateNode(AST_Node *n, int offset, bool genSibling)
                 }
                     break;
                 case ForK:
+                    //printASTAugmented(n, 0, 0);
+                    emitComment("TOFF set: "+to_string(offset-3));
+                    emitComment("FOR");
+                    generateNode(n->child[0], offset, true); // generate variable code
+                    generateNode(n->child[1], offset, true); // generate range code
+                    reset_offset = emitSkip(1); // save location 
+                    generateForComp(n->child[2], offset);
+                    //generateNode(n->child[2], offset, true); // generate compound statement
+                    emitComment("Bottom of loop increment and jump");
+                    emitRM("LD", 3, offset, 1, "Load index");
+                    emitRM("LD", 5, offset-2, 1, "Load step");
+                    emitRO("ADD", 3, 3, 5, "increment");
+                    emitRM("ST", 3, offset, 1, "store back to index");
+                    emitGotoAbs(reset_offset-5, "go to beginning of loop");
+                    backPatchAJumpToHere(reset_offset, "Jump past loop [backpatch]");
+                    emitComment("END LOOP");
+                    break;
+                case RangeK:
+                    //emitComment("RANGE");
+                    generateNode(n->child[0], offset-3, true);
+                    emitRM("ST", 3, offset, 1, "save starting value in index variable");
+                    generateNode(n->child[1], offset-3, true);
+                    emitRM("ST", 3, offset-1, 1, "save stop value");
+                    if(n->child[2]!=NULL) { generateNode(n->child[2], offset-3, true); }
+                    else { emitRM("LDC", 3, 1, 6, "default increment by 1"); }
+                    emitRM("ST", 3, offset-2, 1, "save step value");
+                    emitRM("LD", 4, offset, 1, "loop index");
+                    emitRM("LD", 5, offset-1, 1, "stop value");
+                    emitRM("LD", 3, offset-2, 1, "step value");
+                    emitRO("SLT", 3, 4, 5, "Op <");
+                    emitRM("JNZ", 3, 1, 7, "Jump to loop body");
                     break;
                 case CompoundK:
                     reset_offset = offset;
@@ -218,8 +283,6 @@ static void generateNode(AST_Node *n, int offset, bool genSibling)
                     emitComment("BREAK");
                     emitRM("JMP", 7, breakpoint-emitWhereAmI()-1, 7, "break");
                     break;
-                case RangeK:
-                    break;
             }
             break;
     }
@@ -240,6 +303,23 @@ static void generateArgs(AST_Node *n, int toffset, int num_args)
     emitRM("ST", 3, toffset, 1, "Push parameter");
     
     generateArgs(n->sibling, toffset-1, ++num_args); // generate code for sibling arguments
+}
+
+//
+static void generateForComp(AST_Node *n, int toffset)
+{
+    if(n!=NULL && n->nodeKind==StmtK && n->subkind.stmt==CompoundK) {
+        toffset = n->size;
+        int tmp = toffset;
+        emitComment("COMPOUND");
+        emitComment("TOFF set: "+to_string(toffset));
+        generateNode(n->child[0], toffset, true); // generate local declarations
+        emitComment("Compound Body");
+        generateNode(n->child[1], toffset, true); // generate statement lists
+        toffset = tmp;
+        emitComment("TOFF set: "+to_string(toffset));
+        emitComment("END COMPOUND");
+    }
 }
 
 static void emitOp(string op)
@@ -294,8 +374,8 @@ static void emitAssignOp(AST_Node *n, string op, int toff)
     }
     else { // non-array
         generateNode(n->child[1], toff-1, true);
-        emitRM("LD", 4, n->child[0]->stackLocation, n->child[0]->varKind!=Global, "load lhs variable", string(n->child[0]->name));
-        if (op == "+=") { emitRO("ADD", 3, 4, 3, "op +="); }
+        emitRM("LD", 4, n->child[0]->stackLocation, n->child[0]->varKind == Local || n->child[0]->varKind == Parameter, "load lhs variable", string(n->child[0]->name)); //n->child[0]->varKind!=Global
+        if (op == "+=") { emitRO("ADD", 3, 4, 3, "op +="); } 
         else if(op == "-=") { emitRO("SUB", 3, 4, 3, "op -="); }
         else if(op == "*=") { emitRO("MUL", 3, 4, 3, "op *="); }
         else if(op == "/=") { emitRO("DIV", 3, 4, 3, "op /="); }
@@ -339,6 +419,20 @@ static void emitAssignArray(AST_Node *n, AST_Node* id, int offset)
     emitRM("ST", 3, 0 ,5, "Store variable", string(id->name));
 }
 
+static void emitOpArray(AST_Node *n, int offset)
+{
+    emitRM("LD", 5, 1, 3, "AC2 <- |RHS|");
+    emitRM("LD", 6, 1, 4, "AC3 <- |LHS|");
+    emitRM("LDA", 2, 0, 5, "R2 <- |RHS|");
+    emitRO("SWP", 5, 6, 6, "pick smallest size");
+    emitRM("LD", 6, 1, 4, "AC3 <- |LHS|");
+    emitRO("CO", 4, 3, 5, "setup array compare  LHS vs RHS");
+    emitRO("TNE", 5, 4, 3, "if not equal then test (AC1, AC)");
+    emitRO("JNZ", 5, 2, 7, "jump not equal");
+    emitRM("LDA", 3, 0, 2, "AC1 <- |RHS|");
+    emitRM("LDA", 4, 0, 6, "AC <- |LHS|");
+}
+
 // Generates initialization code that is called at the begining of the program.
 static void generateInit()
 {
@@ -372,7 +466,7 @@ void emitInitGlobals(string str, void* a)
     AST_Node* n = (AST_Node*)a; // get correct type
     if(n->subkind.decl == VarK &&  n->child[0] != NULL){
         generateNode(n->child[0], -2, true);
-        emitRM("ST", 3, n->stackLocation, 0, "initialize",string(n->name));
+        emitRM("ST", 3, n->stackLocation, 0, "Store variable",string(n->name));
     }
     if(n->subkind.decl == VarK && n->isArray){
         emitRM("LDC", 3, n->size-1, 6, "load size of array",string(n->name));
@@ -384,19 +478,19 @@ void emitInitGlobals(string str, void* a)
 static void generateIO()
 {
     emitSkip(1);
-    // //------------- header -------------
-    // emitComment("****************************************");
-    // emitComment("C- Compiler Version 1");
-    // emitComment("Built: Apr 19, 2022 (toffset telemetry");
-    // emitComment("Author: David C Bush");
-    // emitComment("");
-    // emitComment("** ** ** ** ** ** ** ** ** ** ** **");
-    emitComment("C- compiler version C-S21");
-    emitComment("Built: Apr 18, 2021 (toffset telemetry)");
-    emitComment("Author: Robert B. Heckendorn");
-    emitComment("File compared: ");
+    //------------- header -------------
+    emitComment("****************************************");
+    emitComment("C- Compiler Version 1");
+    emitComment("Built: Apr 19, 2022 (toffset telemetry");
+    emitComment("Author: David C Bush");
     emitComment("");
     emitComment("** ** ** ** ** ** ** ** ** ** ** **");
+    // emitComment("C- compiler version C-S21");
+    // emitComment("Built: Apr 18, 2021 (toffset telemetry)");
+    // emitComment("Author: Robert B. Heckendorn");
+    // emitComment("File compared: ");
+    // emitComment("");
+    // emitComment("** ** ** ** ** ** ** ** ** ** ** **");
     //------------- input -------------
     funcMap["input"] = emitWhereAmI()-1; // set functions start instruction
     emitComment("FUNCTION input");

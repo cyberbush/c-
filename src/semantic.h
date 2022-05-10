@@ -25,6 +25,10 @@ class SemanticAnalyzer {
         AST_Node *startFunction = NULL;     // store the start of function here
         bool hasMain;                        // is there a main function
         bool isInitConstant = true;
+
+        int repeat = 0;
+        bool isRepeat = false;
+        bool repeatUsed = false;
         
         // traverses through tree using preorder
         // mainly setting up and managing scopes

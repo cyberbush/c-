@@ -50,12 +50,12 @@ int main( int argc, char *argv[] )
         if ((yyin = fopen(argv[file], "r"))) {
             // file open successful
             yyparse();
-            // int filesize = strlen(argv[file]);
-            // char *filename = strdup(argv[file]);
-            // filename[filesize-2] = 't';
-            // filename[filesize-1] = 'm';
-            // code = fopen(filename, "a"); // file for emitcode
-            code = fopen("test.tm", "a"); // file for emitcode
+            int filesize = strlen(argv[file]);
+            char *filename = strdup(argv[file]);
+            filename[filesize-2] = 't';
+            filename[filesize-1] = 'm';
+            code = fopen(filename, "a"); // file for emitcode
+            //code = fopen("test.tm", "a"); // file for emitcode
             //printf("File Name: %s\tsize: %d\n", filename, filesize);
         }
         else {

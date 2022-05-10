@@ -38,6 +38,14 @@ void printUsage()
     printf("-P          - print the abstract syntax tree plus type information\n");
 }
 
+bool isStr(AST_Node *n)
+{
+    if(n!=NULL && n->expType == Char && n->size>1) {
+        return true;
+    }
+    return false;
+}
+
 bool isIO(string str)
 {   
     if (str.find("outnl") != string::npos || str.find("input") != string::npos || str.find("output") != string::npos || str.find("inputb") != string::npos || str.find("outputb") != string::npos || str.find("inputc") != string::npos || str.find("inputc") != string::npos) {
@@ -89,6 +97,21 @@ bool hasScope(AST_Node* n)
 bool isInStr(const char *str, char c)
 {
     return string(str).find(c) != string::npos;
+}
+
+char* createStrNoEscape(char * s)
+{
+    int len = strlen(s);
+    size_t size = len-2;
+    int i = 0; 
+    char *tmp = (char*)malloc(sizeof(char)*(len-2));
+    while(i<len && s[i]!='\\') {
+        tmp[i]=s[i];
+        i++;
+    }
+    tmp[i] = '\"';
+    tmp[i+1] = '\0';
+    return tmp;
 }
 
 int countSiblings(AST_Node* t)
